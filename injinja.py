@@ -158,7 +158,7 @@ def main(args):
     if args["validate"]:
         validator_text = pathlib.Path(args["validate"]).read_text()
         diff = "\n".join(difflib.unified_diff(merged_template.splitlines(), validator_text.splitlines(), lineterm=""))
-        log.debug(f"# diff: {diff=}")
+        log.debug(diff)
 
     if args["output"] == "stdout":
         print(merged_template)

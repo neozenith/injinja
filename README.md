@@ -2,6 +2,12 @@
 
 Injinja: Injectable Jinja Configuration tool. Insanely configurable config system.
 
+# Quickstart
+
+```sh
+uv run injinja.py -t samples/templates/template.yml -c 'samples/config/*' -e home_dir="$HOME"
+```
+
 ## Overview
 
 Inspired by my prior work [invoke_databricks_wheel_tasks](https://github.com/neozenith/invoke-databricks-wheel-tasks/blob/main/invoke_databricks_wheel_tasks/tasks.py#L81)
@@ -9,14 +15,17 @@ Inspired by my prior work [invoke_databricks_wheel_tasks](https://github.com/neo
 This setup allows for configuration driven code based akin to Kubernetes etc but you define your own conventions as well as inject environment variables at runtime. Blending static and dynamic aspects of configuration.
 
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": false}} }%%
 flowchart TD
     output["`output_file / stdout `"]
-    environment_variable["--env KEY=VALUE
+    environment_variable["
+    --env KEY=VALUE
     ...
     [--env KEY=VALUE]"]
+
     config_file["config file(s) 
     (*.json, *.yml, *.toml)"]
+
+    template_file["Jinja Template file"]
 
     environment_variable --> injinja.py
     config_file --> injinja.py
@@ -39,7 +48,7 @@ Templating variables and not providing a value will throw an error to ensure tem
 ## USAGE
 
 ```sh
-USAGE: python3 injinja.py [--debug] [--template/-t TEMPLATE]  [--config/-c CONFIGFILE/GLOB] [--env KEY=VALUE] [--env KEY=VALUE] [--output OUTPUTFILE]
+USAGE: uv run injinja.py [--debug] [--template/-t TEMPLATE]  [--config/-c CONFIGFILE/GLOB] [--config/-c CONFIGFILE/GLOB] [--env KEY=VALUE] [--env KEY=VALUE] [--output OUTPUTFILE] [--validate/-v VALIDATION_FILE]
 ```
 
 One liner:
@@ -48,8 +57,80 @@ One liner:
 curl -fsSL https://raw.githubusercontent.com/neozenith/python-onboarding-guide/refs/heads/main/scripts/injinja.py | sh -c "python3 - -t template.j2 -c config.yml -e home_dir=$HOME"
 ```
 
+## Advanced - Collections of config files
+
+```mermaid
+flowchart TD
+    output["`output_file / stdout `"]
+    environment_variable["
+    --env KEY=VALUE
+    ...
+    [--env KEY=VALUE]"]
+
+    config_file["base config file 
+    -c base.yml"]
+    glob_expression["Glob Expression
+    -c '**/*.yml'"]
+    override_file["base config file 
+    -c override.yml"]
+
+    template_file["Jinja Template file"]
+
+    environment_variable --> injinja.py
+    config_file --> injinja.py
+    glob_expression --> injinja.py
+    override_file --> injinja.py
+    template_file --> injinja.py
+    
+    injinja.py --> output
+    
+```
+
+- Firstly the `--env` flags are collected and turned into a `dict`
+- Next the `--config/-c` flags are collected
+    - If the value passes the `pathlib.Path(c).is_file()` check then it is used as-is.
+    - If it fails the above check then it is attempted to be expanded using `glob.glob(c)`
+    - The order of the `-c` flags allow re-specifying the same file again as the last file to ensure it is an override file.
+- This list of configs are each independently templated with the `dict` from `--env`
+- They then use `deepmerge.always_merger` to iteratively layer the config to make a final config. (Hence the importance of the ordering of flags.)
+
+## Testing
+
+```mermaid
+flowchart TD
+    output["`output_file / stdout `"]
+    environment_variable["
+    --env KEY=VALUE
+    ...
+    [--env KEY=VALUE]"]
+
+    config_file["base config file 
+    -c base.yml"]
+    glob_expression["Glob Expression
+    -c '**/*.yml'"]
+    override_file["base config file 
+    -c override.yml"]
+
+    template_file["Jinja Template file"]
+    validate["Validation File
+    --validate expeactations-override.yml"]
+    diff["Generate diff of output 
+    and validation file"]
+
+    environment_variable --> injinja.py
+    config_file --> injinja.py
+    glob_expression --> injinja.py
+    override_file --> injinja.py
+    template_file --> injinja.py
+    validate --> injinja.py
+    injinja.py --> output
+    injinja.py --> diff
+```
+
+For the sake of some testing, adding the flag for a fixed text output allows the use of `difflib` to generate a text diff for sanity checking output from an expectation.
+
 ## TODO
+- Dynamically load other python files, reflect the exported functions, add those functions to the Jinja environment.
 - Add custom directives like !include for YAML parser inspired by:
 https://github.com/littleK0i/SnowDDL/blob/master/snowddl/parser/_yaml.py
-- Add merging of collections of JSON or YAML if a pathspec is given
-https://deepmerge.readthedocs.io/en/latest/index.html
+
