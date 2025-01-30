@@ -2,10 +2,11 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#   "jinja2",
-#   "PyYAML",
-#   "types-PyYAML",
-#   "deepmerge",
+# "jinja2",
+# "PyYAML",
+# "deepmerge",
+# "types-PyYAML",
+# "types-jinja2"
 # ]
 # ///
 # https://docs.astral.sh/uv/guides/scripts/#creating-a-python-script
@@ -15,11 +16,13 @@
 # Standard Library
 import argparse
 import difflib
-import glob
+import functools
 import itertools
 import json
 import logging
+import os
 import pathlib
+import shlex
 import sys
 import tomllib
 from typing import Any
@@ -32,13 +35,27 @@ from deepmerge import always_merger
 log = logging.getLogger(__name__)
 
 log_level = logging.DEBUG if "--debug" in sys.argv else logging.INFO
-logging.basicConfig(level=log_level, format="%(message)s")
+log_format = "%(asctime)s::%(name)s::%(levelname)s::%(module)s:%(funcName)s:%(lineno)d| %(message)s"
+# log_format = "# %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
 log.debug(f"# {sys.argv}")
 log.debug(f"# {pathlib.Path.cwd()}")
 
 cli_config = {
     "debug": True,
-    "template": {"required": True, "help": "The Jinja2 template file to use."},
+    # Gathering Environment variables for dynamic configuration
+    "env": {
+        "action": "append",
+        "default": [],
+        "help": "Environment variables to pass to the template. Can be KEY=VALUE or path to an .env file.",
+    },
+    "prefix": {
+        "default": [],
+        "action": "append",
+        "help": "Import all environment variables with given prefix. eg 'MYAPP_' could find MYAPP_NAME and will import as `myapp.name`. This argument can be repeated.",
+    },
+    # Gather static configuration files
     "config": {
         "required": True,
         "default": [],
@@ -48,14 +65,21 @@ cli_config = {
                Either specify a single file, repeated config flags for multiple files or a glob pattern.
         """,
     },
-    "env": {"action": "append", "default": [], "help": "Environment variables to pass to the template."},
-    "validate": {"help": "Filename of an outputfile to validate the output against."},
+    # Target Jinja template file
+    "template": {"required": True, "help": "The Jinja2 template file to use."},
+    # Output file / stdout
     "output": "stdout",
+    "validate": {"help": "Filename of an outputfile to validate the output against."},
 }
 
 
+########################################################################################
+# CLI
+########################################################################################
+
+
 def __argparse_factory(config):
-    """Josh's Opinionated Argument Parser Factory."""
+    """Opinionated Argument Parser Factory."""
     parser = argparse.ArgumentParser()
 
     # Take a dictionary of configuration. The key is the flag name, the value is a dictionary of kwargs.
@@ -85,11 +109,53 @@ def __handle_args(parser, args):
     return vars(parser.parse_args(args))
 
 
+########################################################################################
+# Environment Variables
+########################################################################################
+
+
 def __expand_files_list(file_or_glob: str) -> list[str]:
-    """Get a list of files from a glob pattern."""
+    """Automatically determine if a string is a file already or a glob pattern and expand it.
+    Always return the resolved list of files."""
     if pathlib.Path(file_or_glob).is_file():
         return [file_or_glob]
-    return glob.glob(file_or_glob)
+    return [str(p) for p in pathlib.Path().glob(file_or_glob)]
+
+
+def __parse_env_line(line: str) -> tuple[str | None, str | None]:
+    """Parses a single line into a key-value pair. Handles quoted values and inline comments.
+    Returns (None, None) for invalid lines."""
+    # Guard checks for empty lines or lines without '='
+    line = line.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        return None, None
+
+    # Split the line into key and value at the first '='
+    key, value = line.split("=", 1)
+    key = key.strip()
+
+    # Use shlex to process the value (handles quotes and comments)
+    lexer = shlex.shlex(value, posix=True)
+    lexer.whitespace_split = True  # Tokenize by whitespace
+    value = "".join(lexer)  # Preserve the full quoted/cleaned value
+
+    return key, value
+
+
+def read_env_file(file_path: str) -> dict[str, str] | None:
+    """Reads a .env file and returns a dictionary of key-value pairs.
+    If the file does not exist or is not a regular file, returns None.
+    """
+    file = pathlib.Path(file_path)
+    return (
+        {
+            key: value
+            for key, value in map(__parse_env_line, file.read_text().splitlines())
+            if key is not None and value is not None
+        }
+        if file.is_file()
+        else None
+    )
 
 
 def dict_from_keyvalue_list(args: list[str] | None = None) -> dict[str, str] | None:
@@ -97,28 +163,44 @@ def dict_from_keyvalue_list(args: list[str] | None = None) -> dict[str, str] | N
     return {k: v for k, v in [x.split("=") for x in args]} if args else None
 
 
-def merge_template(template_filename: str, config: dict[str, Any] | None) -> str:
-    """Load a Jinja2 template from file and merge configuration."""
-    # Step 1: get raw content as a string
-    raw_content = pathlib.Path(template_filename).read_text()
+def dict_from_prefixes(prefixes: list[str] | None = None) -> dict[str, str] | None:
+    """Convert environment variables with a given prefix into a dictionary."""
+    if not prefixes:
+        return None
 
-    # Step 2: Treat raw_content as a Jinja2 template if providing configuration
-    if config:
-        # NOTE: Providing jinja 2.11.x compatable version to better cross operate
-        # with dbt-databricks v1.2.2 and down stream dbt-spark and dbt-core
-        if int(jinja2.__version__[0]) >= 3:
-            content = jinja2.Template(raw_content, undefined=jinja2.StrictUndefined).render(**config)
-        else:
-            content = jinja2.Template(raw_content).render(**config)
+    env = os.environ
+    return {k.upper(): v for k, v in env.items() for prefix in prefixes if k.lower().startswith(prefix.lower())}
 
-    else:
-        content = raw_content
 
-    return content
+def get_environment_variables(env_flags: list[str], prefixes_list: list[str]) -> dict[str, str]:
+    """Get environment variables from all sources and merge them."""
+
+    # Any --env flags that are files are read as .env files
+    env_files = [e for e in env_flags if pathlib.Path(e).is_file()]
+    # The rest are interpretted as KEY=VALUE pairs
+    env_key_values = [e for e in env_flags if e not in env_files]
+
+    env = dict_from_keyvalue_list(env_key_values)
+    env_from_files = list(filter(None, [read_env_file(e) for e in env_files]))
+    env_from_prefixes = dict_from_prefixes(prefixes_list)
+
+    # Precedence has to be evaluated in this order
+    # 1. Environment variables from file(s)
+    # 2. Environment variables from prefixes
+    # 3. Environment variables from CLI flags
+    envs_by_precedence = [*env_from_files, env_from_prefixes, env]
+
+    # Merge environment variables from all sources
+    return functools.reduce(always_merger.merge, filter(None, envs_by_precedence), {})
+
+
+########################################################################################
+# Configuration files and Jinja Templating
+########################################################################################
 
 
 def load_config(filename: str, environment_variables: dict[str, str] | None = None) -> Any:
-    """Detect if file is JSON or YAML and return parsed datastructure.
+    """Detect if file is JSON, YAML or TOML and return parsed datastructure.
 
     When environment_variables is provided, then the file is first treated as a Jinja2 template.
     """
@@ -136,22 +218,58 @@ def load_config(filename: str, environment_variables: dict[str, str] | None = No
     raise ValueError(f"File type of {filename} not supported.")  # pragma: no cover
 
 
+def merge_template(template_filename: str, config: dict[str, Any] | None) -> str:
+    """Load a Jinja2 template from file and merge configuration."""
+    # Step 1: get raw content as a string
+    raw_content = pathlib.Path(template_filename).read_text()
+
+    # Step 2: Treat raw_content as a Jinja2 template if providing configuration
+    if config:
+        # NOTE: Providing jinja 2.11.x compatable version to better cross operate
+        # with dbt-databricks v1.2.2 and down stream dbt-spark and dbt-core
+        if int(jinja2.__version__[0]) >= 3:  # type: ignore
+            content = jinja2.Template(raw_content, undefined=jinja2.StrictUndefined).render(**config)
+        else:
+            content = jinja2.Template(raw_content).render(**config)
+
+    else:
+        content = raw_content
+
+    return content
+
+
+def map_env_to_confs(config_files_or_globs: list[str], env: dict[str, Any]) -> list[dict[str, Any]]:
+    """Load and merge configuration files based on CLI arguments and environment variables."""
+    log.debug(f"# config sources: {config_files_or_globs=}")
+    all_conf_files = list(itertools.chain.from_iterable([__expand_files_list(x) for x in config_files_or_globs]))
+    log.debug(f"# all_conf_files: {all_conf_files=}")
+    confs = [load_config(conf, env) for conf in all_conf_files]
+    return confs
+
+
+def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Reduce a list of configuration dictionaries into a single dictionary."""
+    return functools.reduce(always_merger.merge, confs, {})
+
+
+########################################################################################
+# Main
+########################################################################################
+
+
 def main(args):
     parser = __argparse_factory(cli_config)
     args = __handle_args(parser, sys.argv)
-    env = dict_from_keyvalue_list(args["env"])
-    log.debug(f"# env: {env=}")
-    log.debug(f"# config sources: {args["config"]=}")
 
-    all_conf_files = list(itertools.chain.from_iterable([__expand_files_list(x) for x in args["config"]]))
+    # Dymamic configuration
+    env = get_environment_variables(env_flags=args["env"], prefixes_list=args["prefix"])
+    log.debug(json.dumps(env, indent=2))
 
-    log.debug(f"# all_conf_files: {all_conf_files=}")
-    confs = [load_config(conf, env) for conf in all_conf_files]
+    # Static configuration
+    confs = map_env_to_confs(config_files_or_globs=args["config"], env=env)
     log.debug(f"# confs: {confs=}")
-    final_conf = {}
-    for conf in confs:
-        always_merger.merge(final_conf, conf)
-    log.debug(f"# final_conf: {final_conf=}")
+    final_conf = reduce_confs(confs)
+
     merged_template = merge_template(args["template"], final_conf)
     log.debug(f"# merged_template: {merged_template=}")
 

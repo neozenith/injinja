@@ -7,8 +7,9 @@ requires-python = ">=3.12"
 dependencies = [
     "jinja2",
     "PyYAML",
-    "types-PyYAML",
     "deepmerge",
+    "types-PyYAML",
+    "types-jinja2"
 ]
 
 
@@ -16,6 +17,10 @@ dependencies = [
 dev = [
     "isort>=5.13.2",
     "md-toc>=9.0.0",
+    "mypy>=1.14.1",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "pytest-xdist>=3.6.1",
     "ruff>=0.9.2",
 ]
 
