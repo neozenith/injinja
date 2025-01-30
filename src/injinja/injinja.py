@@ -43,6 +43,10 @@ log.debug(f"# {sys.argv}")
 log.debug(f"# {pathlib.Path.cwd()}")
 
 cli_config = {
+    "__doc__": {
+        "prog": "injinja",
+        "description": "Injinja: Injectable Jinja Configuration tool. Insanely configurable... config system.",
+    },
     "debug": True,
     # Gathering Environment variables for dynamic configuration
     "env": {
@@ -80,8 +84,8 @@ cli_config = {
 
 def __argparse_factory(config):
     """Opinionated Argument Parser Factory."""
-    parser = argparse.ArgumentParser()
-
+    parser = argparse.ArgumentParser(**config["__doc__"])
+    del config["__doc__"]
     # Take a dictionary of configuration. The key is the flag name, the value is a dictionary of kwargs.
     for flag, flag_kwargs in config.items():
         # Automatically handle long and short case for flags
@@ -259,7 +263,7 @@ def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
 
 def main(args):
     parser = __argparse_factory(cli_config)
-    args = __handle_args(parser, sys.argv)
+    args = __handle_args(parser, args)
 
     # Dymamic configuration
     env = get_environment_variables(env_flags=args["env"], prefixes_list=args["prefix"])
@@ -285,4 +289,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main(sys.argv[1:])

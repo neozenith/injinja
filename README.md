@@ -4,6 +4,19 @@ Injinja: **Inj**ectable **Jinja** Configuration tool.
 
 _Insanely configurable... config system._
 
+<!--TOC-->
+
+- [injinja 🥷](#injinja-)
+- [Quickstart](#quickstart)
+  - [Overview](#overview)
+  - [Usage](#usage)
+  - [Architecture](#architecture)
+  - [Advanced - Collections of config files](#advanced---collections-of-config-files)
+  - [Testing](#testing)
+  - [TODO](#todo)
+
+<!--TOC-->
+
 # Quickstart
 
 ```sh
@@ -48,7 +61,11 @@ Absence of the "just-in-time" config results in merely merging the config file i
 
 Templating variables and not providing a value will throw an error to ensure templating is correct at runtime.
 
-## USAGE
+## Usage
+
+```sh
+pip install https://github.com/neozenith/injinja/archive/main.zip
+```
 
 ```sh
 USAGE: uv run injinja.py [--debug] [--template/-t TEMPLATE]  [--config/-c CONFIGFILE/GLOB] [--config/-c CONFIGFILE/GLOB] [--env KEY=VALUE] [--env KEY=VALUE] [--output OUTPUTFILE] [--validate/-v VALIDATION_FILE]
@@ -57,7 +74,7 @@ USAGE: uv run injinja.py [--debug] [--template/-t TEMPLATE]  [--config/-c CONFIG
 One liner:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/neozenith/python-onboarding-guide/refs/heads/main/scripts/injinja.py | sh -c "python3 - -t template.j2 -c config.yml -e home_dir=$HOME"
+curl -fsSL https://raw.githubusercontent.com/neozenith/injinja/refs/heads/main/src/injinja/injinja.py | sh -c "python3 - -t template.j2 -c config.yml -e home_dir=$HOME"
 ```
 
 ## Architecture
@@ -69,7 +86,7 @@ curl -fsSL https://raw.githubusercontent.com/neozenith/python-onboarding-guide/r
 graph LR
     subgraph Dynamic_Configuration
         env_flags[--env KEY=VALUE]
-        env_file[.env]
+        env_file["--env .env"]
         env_prefix[--prefix ENV_VAR_PREFIX ]
         env_dict[env:dict]
         env_prefix --> env_dict
