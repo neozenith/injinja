@@ -17,6 +17,7 @@
 import argparse
 import difflib
 import functools
+import importlib.util
 import itertools
 import json
 import logging
@@ -31,6 +32,8 @@ from typing import Any
 import jinja2
 import yaml
 from deepmerge import always_merger
+from jinja2.filters import FILTERS
+from jinja2.tests import TESTS
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +74,12 @@ cli_config = {
     },
     # Target Jinja template file
     "template": {"required": True, "help": "The Jinja2 template file to use."},
+    "functions": {
+        "required": False,
+        "default": [],
+        "action": "append",
+        "help": "Path or glob pattern to a python file containing custom functions to use in the template.",
+    },
     # Output file / stdout
     "output": "stdout",
     "validate": {"help": "Filename of an outputfile to validate the output against."},
@@ -116,6 +125,11 @@ def __handle_args(parser, args):
 ########################################################################################
 # Environment Variables
 ########################################################################################
+
+
+def __expand_files_or_globs_list(files_or_globs: list[str]) -> list[str]:
+    """Given a list of files or glob patterns, expand them all and return a list of files."""
+    return list(itertools.chain.from_iterable([__expand_files_list(x) for x in files_or_globs]))
 
 
 def __expand_files_list(file_or_glob: str) -> list[str]:
@@ -198,6 +212,35 @@ def get_environment_variables(env_flags: list[str], prefixes_list: list[str]) ->
     return functools.reduce(always_merger.merge, filter(None, envs_by_precedence), {})
 
 
+def get_functions(functions: list[str]) -> dict[str, Any]:
+    """Load custom functions from python files."""
+    all_functions = __expand_files_or_globs_list(functions)
+
+    functions_dict: dict[str, Any] = {"tests": {}, "filters": {}}
+    for f in all_functions:
+        spec = importlib.util.spec_from_file_location("custom_functions", f)
+        log.debug(f"# {spec=}")
+        if spec is not None and spec.loader is not None:
+            module = importlib.util.module_from_spec(spec)
+            log.debug(f"# {module=}")
+            spec.loader.exec_module(module)
+            functions_dict["tests"].update(
+                {
+                    k.removeprefix("test_"): v
+                    for k, v in module.__dict__.items()
+                    if callable(v) and k.startswith("test_")
+                }
+            )
+            functions_dict["filters"].update(
+                {
+                    k.removeprefix("filter_"): v
+                    for k, v in module.__dict__.items()
+                    if callable(v) and k.startswith("filter_")
+                }
+            )
+    return functions_dict
+
+
 ########################################################################################
 # Configuration files and Jinja Templating
 ########################################################################################
@@ -245,7 +288,7 @@ def merge_template(template_filename: str, config: dict[str, Any] | None) -> str
 def map_env_to_confs(config_files_or_globs: list[str], env: dict[str, Any]) -> list[dict[str, Any]]:
     """Load and merge configuration files based on CLI arguments and environment variables."""
     log.debug(f"# config sources: {config_files_or_globs=}")
-    all_conf_files = list(itertools.chain.from_iterable([__expand_files_list(x) for x in config_files_or_globs]))
+    all_conf_files = __expand_files_or_globs_list(config_files_or_globs)
     log.debug(f"# all_conf_files: {all_conf_files=}")
     confs = [load_config(conf, env) for conf in all_conf_files]
     return confs
@@ -259,33 +302,70 @@ def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
 ########################################################################################
 # Main
 ########################################################################################
+def merge(
+    env: list[str] | None = None, 
+    config: list[str] | None = None, 
+    template: str = "", 
+    output: str = "stdout", 
+    validate: str | None = None, 
+    prefix: list[str] | None = None,
+    functions: list[str] | None = None,
+) -> tuple[str, str | None]:
+    """Merge configuration files and Jinja2 template to produce a final configuration file."""
+    # Defaults to empty lists
+    # Setting mutables as defaults is not recommended.
+    _env: list[str] = env or []
+    _config: list[str] = config or []
+    _prefix: list[str] = prefix or []
+    _functions: list[str] = functions or []
+    
+    # Dymamic configuration
+    merged_env: dict[str, str] = get_environment_variables(env_flags=_env, prefixes_list=_prefix)
+    log.debug(json.dumps(merged_env, indent=2))
+
+    # Custom functions
+    log.debug(f"# functions {_functions=}")
+    f = get_functions(_functions)
+    TESTS.update(f["tests"])
+    FILTERS.update(f["filters"])
+    log.debug(f"# {TESTS=}")
+    log.debug(f"# {FILTERS=}")
+
+    # Static configuration
+    confs = map_env_to_confs(config_files_or_globs=_config, env=merged_env)
+    log.debug(f"# confs: {confs=}")
+    final_conf = reduce_confs(confs)
+
+    merged_template = merge_template(template, final_conf)
+    log.debug(f"# merged_template: {merged_template=}")
+
+    diff = None
+    if validate:
+        validator_text = pathlib.Path(validate).read_text()
+        diff = "\n".join(difflib.unified_diff(merged_template.splitlines(), validator_text.splitlines(), lineterm=""))
+        log.debug(diff)
+
+    if output == "stdout":
+        print(merged_template)
+    else:
+        pathlib.Path(output).write_text(merged_template)
+
+    return merged_template, diff
 
 
 def main(args):
     parser = __argparse_factory(cli_config)
     args = __handle_args(parser, args)
 
-    # Dymamic configuration
-    env = get_environment_variables(env_flags=args["env"], prefixes_list=args["prefix"])
-    log.debug(json.dumps(env, indent=2))
-
-    # Static configuration
-    confs = map_env_to_confs(config_files_or_globs=args["config"], env=env)
-    log.debug(f"# confs: {confs=}")
-    final_conf = reduce_confs(confs)
-
-    merged_template = merge_template(args["template"], final_conf)
-    log.debug(f"# merged_template: {merged_template=}")
-
-    if args["validate"]:
-        validator_text = pathlib.Path(args["validate"]).read_text()
-        diff = "\n".join(difflib.unified_diff(merged_template.splitlines(), validator_text.splitlines(), lineterm=""))
-        log.debug(diff)
-
-    if args["output"] == "stdout":
-        print(merged_template)
-    else:
-        pathlib.Path(args["output"]).write_text(merged_template)
+    merge(
+        env=args["env"],
+        config=args["config"],
+        template=args["template"],
+        output=args["output"],
+        validate=args["validate"],
+        prefix=args["prefix"],
+        functions=args["functions"],
+    )
 
 
 if __name__ == "__main__":

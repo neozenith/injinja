@@ -1,0 +1,6 @@
+project: {{ common.project_name }}
+description: {{ common.description }}
+directory: {{ common.directory | default_or("blegh") | upper }}
+{% if 31 is is_prime %}
+prime: 31
+{% endif %}

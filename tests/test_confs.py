@@ -13,4 +13,4 @@ def test_reduce_confs():
 
 def test_reading_confs(sample_data_path):
     files = list(sample_data_path.glob("**/*.yml"))
-    assert files == []
+    assert len(files) == 5

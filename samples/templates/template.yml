@@ -1,3 +1,0 @@
-project: {{ common.project_name }}
-description: {{ common.description }}
-directory: {{ common.directory }}
