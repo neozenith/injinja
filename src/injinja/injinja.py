@@ -326,6 +326,9 @@ def merge(
     # Custom functions
     log.debug(f"# functions {_functions=}")
     f = get_functions(_functions)
+    
+    # Update global Jinja2 filters and tests
+    # Settings these before an environment is created will make them available to all templates
     TESTS.update(f["tests"])
     FILTERS.update(f["filters"])
     log.debug(f"# {TESTS=}")
