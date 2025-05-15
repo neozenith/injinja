@@ -37,13 +37,18 @@ from jinja2.tests import TESTS
 
 log = logging.getLogger(__name__)
 
-log_level = logging.DEBUG if "--debug" in sys.argv else logging.INFO
-log_format = "%(asctime)s::%(name)s::%(levelname)s::%(module)s:%(funcName)s:%(lineno)d| %(message)s"
-# log_format = "# %(message)s"
+DEBUG_MODE = False
+TRACEBACK_SUPPRESSIONS = [jinja2]
+if "--debug" in sys.argv: # Finished with debug flag so it is safe to remove at this point.
+    DEBUG_MODE = True
+    sys.argv.remove("--debug")
+
+log_level = logging.DEBUG if DEBUG_MODE else logging.INFO
+log_format = "%(asctime)s::%(name)s::%(levelname)s::%(module)s:%(funcName)s:%(lineno)d| %(message)s" if DEBUG_MODE else "%(message)s"
 log_date_format = "%Y-%m-%d %H:%M:%S"
+
+
 logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
-log.debug(f"# {sys.argv}")
-log.debug(f"# {pathlib.Path.cwd()}")
 
 cli_config = {
     "__doc__": {
@@ -73,7 +78,7 @@ cli_config = {
         """,
     },
     # Target Jinja template file
-    "template": {"required": True, "help": "The Jinja2 template file to use."},
+    "template": {"required": False, "help": "The Jinja2 template file to use."},
     "functions": {
         "required": False,
         "default": [],
@@ -274,10 +279,14 @@ def merge_template(template_filename: str, config: dict[str, Any] | None) -> str
     if config:
         # NOTE: Providing jinja 2.11.x compatable version to better cross operate
         # with dbt-databricks v1.2.2 and down stream dbt-spark and dbt-core
-        if int(jinja2.__version__[0]) >= 3:  # type: ignore
-            content = jinja2.Template(raw_content, undefined=jinja2.StrictUndefined).render(**config)
-        else:
-            content = jinja2.Template(raw_content).render(**config)
+        try:
+            if int(jinja2.__version__[0]) >= 3:  # type: ignore
+                content = jinja2.Template(raw_content, undefined=jinja2.StrictUndefined).render(**config)
+            else:
+                content = jinja2.Template(raw_content).render(**config)
+        except jinja2.exceptions.UndefinedError as e:
+            log.error(f"{template_filename} UndefinedError: {e}")
+            raise
 
     else:
         content = raw_content
@@ -318,28 +327,30 @@ def merge(
     _config: list[str] = config or []
     _prefix: list[str] = prefix or []
     _functions: list[str] = functions or []
-    
+    # log.debug(_config)
     # Dymamic configuration
     merged_env: dict[str, str] = get_environment_variables(env_flags=_env, prefixes_list=_prefix)
-    log.debug(json.dumps(merged_env, indent=2))
+    # log.debug(json.dumps(merged_env, indent=2))
 
     # Custom functions
     log.debug(f"# functions {_functions=}")
     f = get_functions(_functions)
-    
+
     # Update global Jinja2 filters and tests
     # Settings these before an environment is created will make them available to all templates
     TESTS.update(f["tests"])
     FILTERS.update(f["filters"])
-    log.debug(f"# {TESTS=}")
-    log.debug(f"# {FILTERS=}")
+    # log.debug(f"# {TESTS=}")
+    # log.debug(f"# {FILTERS=}")
 
     # Static configuration
     confs = map_env_to_confs(config_files_or_globs=_config, env=merged_env)
-    log.debug(f"# confs: {confs=}")
+    log.debug(f"# confs: {json.dumps(confs, indent=2)}")
     final_conf = reduce_confs(confs)
+    log.debug(f"# reduced confs: {json.dumps(final_conf, indent=2)}")
 
-    merged_template = merge_template(template, final_conf)
+    merged_template = merge_template(template, final_conf) if template else ""
+        
     log.debug(f"# merged_template: {merged_template=}")
 
     diff = None
@@ -350,6 +361,10 @@ def merge(
 
     if output == "stdout":
         print(merged_template)
+    elif output == "config-json":
+        print(json.dumps(final_conf, indent=2))
+    elif output in ("config-yaml", "config-yml"):
+        print(yaml.dump(final_conf, indent=2))
     else:
         pathlib.Path(output).write_text(merged_template)
 
