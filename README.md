@@ -13,6 +13,7 @@ _Insanely configurable... config system._
   - [Architecture](#architecture)
   - [Advanced - Collections of config files](#advanced---collections-of-config-files)
   - [Testing](#testing)
+  - [Debugging](#debugging)
   - [TODO](#todo)
 
 <!--TOC-->
@@ -25,9 +26,18 @@ uv run injinja.py -t samples/templates/template.yml -c 'samples/config/*' -e hom
 
 ## Overview
 
-Inspired by my prior work [invoke_databricks_wheel_tasks](https://github.com/neozenith/invoke-databricks-wheel-tasks/blob/main/invoke_databricks_wheel_tasks/tasks.py#L81) and also a style of platform engineering I am seeing which is configuration driven platform components.
+Inspired by my prior work [invoke_databricks_wheel_tasks](https://github.com/neozenith/invoke-databricks-wheel-tasks/blob/main/invoke_databricks_wheel_tasks/tasks.py#L81) and also a style of platform engineering I am seeing which is _configuration driven platform components_.
 
-This setup allows for configuration driven code based akin to Kubernetes etc but you define your own conventions as well as inject environment variables at runtime. Blending static and dynamic aspects of configuration.
+This setup allows for configuration driven code based akin to Kubernetes, dbt etc with what I like to called `Folders of Config`.
+
+- Split up `One Big Fat YAML` into many smaller sensible `.yml` files
+- Organise your `yml` config into hierarchical folders.
+- Just like `dbt` assume every config file is `jinja` templated first
+- Magically they are all `RecursivelyDeepMerge`d at runtime so it is like they were always `One Big Fat YAML`.
+
+*_All of the above also works with `json` and `toml` and mixing them_. You're welcome! 🦾
+
+Oh yeah, and then apply this ultra flexible config to your target jinja template output file.
 
 ```mermaid
 flowchart TD
@@ -227,9 +237,33 @@ flowchart TD
 
 For the sake of some testing, adding the flag for a fixed text output allows the use of `difflib` to generate a text diff for sanity checking output from an expectation.
 
+## Debugging
+
+### Export Merged Config
+
+Addded the `--output` options of either `config-json` or `config-yaml` / `config-yml`, which will actually output the merged config to `stdout`. This can then be filtered and triaged using tools like `jq` or `yq`.
+
+### Stream Config from `stdin`
+
+Added the `--stdin-format json` and `--stdin-format yml` so that we can stream input that is potentially the output of `jq` and continue templating.
+
+This was the easiest way to add `jq` functionality without vendoring the tool into `injinja`.
+
+Here is a broken out example:
+
+```sh
+# The '-o config-json' skips the templating file and outputs the merged config  
+python3 injinja.py -c config/**/*.yml -o config-json | \  
+
+# Leverage tools like jq to filter subsets of the config eg a single COPY INTO statement for testing and debugging  
+jq '.tables[] | keys' | \  
+
+# Take the output of jq as input back into injinja.py to finish templating.  
+python3 injinja.py --stdin-format json -t template.sql -o finalfile.sql
+```
+
 ## TODO
 - Improve test coverage
-- Improve documentation now there is the new `--output config-json` and the `--stdin-format json` flags to allow better merged config triage or streaming filtering with `jq`.
 
 ## Future Works & Ideas
 - Add custom directives like !include for YAML parser inspired by:
