@@ -69,7 +69,7 @@ cli_config = {
     },
     # Gather static configuration files
     "config": {
-        "required": True,
+        "required": False,
         "default": [],
         "action": "append",
         "help": """
@@ -88,6 +88,12 @@ cli_config = {
     # Output file / stdout
     "output": "stdout",
     "validate": {"help": "Filename of an outputfile to validate the output against."},
+    "stdin-format": { # New argument for stdin format
+        "required": False,
+        "default": None,
+        "choices": ["json", "yml", "yaml", "toml"],
+        "help": "Format of the configuration data piped via stdin (json, yaml, toml). If set, injinja will attempt to read from stdin. eg cat config.json | python3 injinja.py --stdin-format json",
+    },
 }
 
 
@@ -269,6 +275,16 @@ def load_config(filename: str, environment_variables: dict[str, str] | None = No
 
     raise ValueError(f"File type of {filename} not supported.")  # pragma: no cover
 
+def parse_stdin_content(content: str, format_type: str) -> Any:
+    """Helper function to parse stdin content based on format."""
+    if format_type == "json":
+        return json.loads(content)
+    elif format_type in ("yaml", "yml"):
+        return yaml.safe_load(content)
+    elif format_type == "toml": 
+        return tomllib.loads(content)
+    # This case should ideally be caught by argparse choices, but as a fallback:
+    raise ValueError(f"Unsupported stdin format: {format_type}")
 
 def merge_template(template_filename: str, config: dict[str, Any] | None) -> str:
     """Load a Jinja2 template from file and merge configuration."""
@@ -319,6 +335,8 @@ def merge(
     validate: str | None = None, 
     prefix: list[str] | None = None,
     functions: list[str] | None = None,
+    stdin_format: str | None = None, # Added stdin_format parameter
+
 ) -> tuple[str, str | None]:
     """Merge configuration files and Jinja2 template to produce a final configuration file."""
     # Defaults to empty lists
@@ -346,6 +364,34 @@ def merge(
     # Static configuration
     confs = map_env_to_confs(config_files_or_globs=_config, env=merged_env)
     log.debug(f"# confs: {json.dumps(confs, indent=2)}")
+
+
+    # Configuration from stdin
+    # TODO: This is a configuration source is kind of dynamic like environment variables 
+    # and yet It is being treated like static config, which should be templated.
+    # The main use case is chaining injinja with other tools like jq or yq.
+    # Eg python3 injinja.py -c config/**/*.yml -o config-json | jq '.tables[] | keys' | python3 injinja.py --stdin-format json -t template.sql -o finalfile.sql
+    if stdin_format and not sys.stdin.isatty():
+        log.debug(f"# Reading config from stdin with format: {stdin_format}")
+        stdin_content = sys.stdin.read()
+        if stdin_content.strip(): # Ensure content is not just whitespace
+            try:
+                stdin_conf = parse_stdin_content(stdin_content, stdin_format)
+                if stdin_conf is not None: # Check if parsing resulted in a valid (non-None) config
+                    confs.append(stdin_conf) # Add to the list of configs to be merged
+                    log.debug(f"# Config from stdin: {json.dumps(stdin_conf, indent=2) if DEBUG_MODE else 'loaded'}")
+                else:
+                    log.debug("# stdin content parsed to None, not adding.")
+            except Exception as e:
+                log.error(f"Error parsing stdin content as {stdin_format}: {e}")
+                # Optionally, re-raise or exit if stdin parsing is critical
+        else:
+            log.debug("# stdin was empty or whitespace only, no config read.")
+    elif stdin_format and sys.stdin.isatty():
+        log.debug(f"# --stdin-format '{stdin_format}' provided, but no data piped to stdin.")
+
+
+
     final_conf = reduce_confs(confs)
     log.debug(f"# reduced confs: {json.dumps(final_conf, indent=2)}")
 
@@ -359,12 +405,15 @@ def merge(
         diff = "\n".join(difflib.unified_diff(merged_template.splitlines(), validator_text.splitlines(), lineterm=""))
         log.debug(diff)
 
-    if output == "stdout":
-        print(merged_template)
-    elif output == "config-json":
+    # Special scenarios that emit only the internal configuration and skip the final template.
+    if output == "config-json":
         print(json.dumps(final_conf, indent=2))
     elif output in ("config-yaml", "config-yml"):
         print(yaml.dump(final_conf, indent=2))
+
+    # Apply configuration to the template and write to file or stdout
+    elif output == "stdout":
+        print(merged_template)
     else:
         pathlib.Path(output).write_text(merged_template)
 
@@ -383,6 +432,7 @@ def main(args):
         validate=args["validate"],
         prefix=args["prefix"],
         functions=args["functions"],
+        stdin_format=args["stdin_format"],
     )
 
 
