@@ -228,7 +228,12 @@ flowchart TD
 For the sake of some testing, adding the flag for a fixed text output allows the use of `difflib` to generate a text diff for sanity checking output from an expectation.
 
 ## TODO
-- Dynamically load other python files, reflect the exported functions, add those functions to the Jinja environment. [Using `importlib`](https://stackoverflow.com/a/67014346/622276)
+- Improve test coverage
+- Improve documentation now there is the new `--output config-json` and the `--stdin-format json` flags to allow better merged config triage or streaming filtering with `jq`.
+
+## Future Works & Ideas
 - Add custom directives like !include for YAML parser inspired by:
 https://github.com/littleK0i/SnowDDL/blob/master/snowddl/parser/_yaml.py
+- Make injinja available on `PyPI`? and installable as a cli tool?
+- Add a build system? `injinja` templates only one file at a time. I wonder if I could leverage a `Makefile` somehow to build out a dependency chain but have a generic rule for the inputs. Or _How hard can it be to build a build system from scratch?_ 🫠
 
