@@ -415,6 +415,7 @@ def merge(
     elif output == "stdout":
         print(merged_template)
     else:
+        pathlib.Path(output).parent.mkdir(parents=True, exist_ok=True)
         pathlib.Path(output).write_text(merged_template)
 
     return merged_template, diff
