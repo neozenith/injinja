@@ -150,8 +150,12 @@ graph LR
     end
     subgraph Output
         stdout
+        config-json
+        config-yaml
         output_file
         merged_output --> stdout
+        merged_output --> config-json
+        merged_output --> config-yaml
         merged_output --> output_file
     end
     subgraph Validation
