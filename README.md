@@ -266,12 +266,6 @@ jq '.tables[] | keys' | \
 python3 injinja.py --stdin-format json -t template.sql -o finalfile.sql
 ```
 
-## TODO
-- Improve test coverage
+## Roadmap and TODO list
 
-## Future Works & Ideas
-- Add custom directives like !include for YAML parser inspired by:
-https://github.com/littleK0i/SnowDDL/blob/master/snowddl/parser/_yaml.py
-- Make injinja available on `PyPI`? and installable as a cli tool?
-- Add a build system? `injinja` templates only one file at a time. I wonder if I could leverage a `Makefile` somehow to build out a dependency chain but have a generic rule for the inputs. Or _How hard can it be to build a build system from scratch?_ 🫠
-
+[Open Issues Raised by `neozenith`](https://github.com/neozenith/injinja/issues?q=is%3Aissue%20state%3Aopen%20author%3Aneozenith)
