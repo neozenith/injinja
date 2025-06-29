@@ -39,12 +39,16 @@ log = logging.getLogger(__name__)
 
 DEBUG_MODE = False
 TRACEBACK_SUPPRESSIONS = [jinja2]
-if "--debug" in sys.argv: # Finished with debug flag so it is safe to remove at this point.
+if "--debug" in sys.argv:  # Finished with debug flag so it is safe to remove at this point.
     DEBUG_MODE = True
     sys.argv.remove("--debug")
 
 log_level = logging.DEBUG if DEBUG_MODE else logging.INFO
-log_format = "%(asctime)s::%(name)s::%(levelname)s::%(module)s:%(funcName)s:%(lineno)d| %(message)s" if DEBUG_MODE else "%(message)s"
+log_format = (
+    "%(asctime)s::%(name)s::%(levelname)s::%(module)s:%(funcName)s:%(lineno)d| %(message)s"
+    if DEBUG_MODE
+    else "%(message)s"
+)
 log_date_format = "%Y-%m-%d %H:%M:%S"
 
 
@@ -88,7 +92,7 @@ cli_config = {
     # Output file / stdout
     "output": "stdout",
     "validate": {"help": "Filename of an outputfile to validate the output against."},
-    "stdin-format": { # New argument for stdin format
+    "stdin-format": {  # New argument for stdin format
         "required": False,
         "default": None,
         "choices": ["json", "yml", "yaml", "toml"],
@@ -275,16 +279,18 @@ def load_config(filename: str, environment_variables: dict[str, str] | None = No
 
     raise ValueError(f"File type of {filename} not supported.")  # pragma: no cover
 
+
 def parse_stdin_content(content: str, format_type: str) -> Any:
     """Helper function to parse stdin content based on format."""
     if format_type == "json":
         return json.loads(content)
     elif format_type in ("yaml", "yml"):
         return yaml.safe_load(content)
-    elif format_type == "toml": 
+    elif format_type == "toml":
         return tomllib.loads(content)
     # This case should ideally be caught by argparse choices, but as a fallback:
     raise ValueError(f"Unsupported stdin format: {format_type}")
+
 
 def merge_template(template_filename: str, config: dict[str, Any] | None) -> str:
     """Load a Jinja2 template from file and merge configuration."""
@@ -328,15 +334,14 @@ def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
 # Main
 ########################################################################################
 def merge(
-    env: list[str] | None = None, 
-    config: list[str] | None = None, 
-    template: str = "", 
-    output: str = "stdout", 
-    validate: str | None = None, 
+    env: list[str] | None = None,
+    config: list[str] | None = None,
+    template: str = "",
+    output: str = "stdout",
+    validate: str | None = None,
     prefix: list[str] | None = None,
     functions: list[str] | None = None,
-    stdin_format: str | None = None, # Added stdin_format parameter
-
+    stdin_format: str | None = None,  # Added stdin_format parameter
 ) -> tuple[str, str | None]:
     """Merge configuration files and Jinja2 template to produce a final configuration file."""
     # Defaults to empty lists
@@ -365,20 +370,19 @@ def merge(
     confs = map_env_to_confs(config_files_or_globs=_config, env=merged_env)
     log.debug(f"# confs: {json.dumps(confs, indent=2)}")
 
-
     # Configuration from stdin
-    # TODO: This is a configuration source is kind of dynamic like environment variables 
+    # TODO: This is a configuration source is kind of dynamic like environment variables
     # and yet It is being treated like static config, which should be templated.
     # The main use case is chaining injinja with other tools like jq or yq.
     # Eg python3 injinja.py -c config/**/*.yml -o config-json | jq '.tables[] | keys' | python3 injinja.py --stdin-format json -t template.sql -o finalfile.sql
     if stdin_format and not sys.stdin.isatty():
         log.debug(f"# Reading config from stdin with format: {stdin_format}")
         stdin_content = sys.stdin.read()
-        if stdin_content.strip(): # Ensure content is not just whitespace
+        if stdin_content.strip():  # Ensure content is not just whitespace
             try:
                 stdin_conf = parse_stdin_content(stdin_content, stdin_format)
-                if stdin_conf is not None: # Check if parsing resulted in a valid (non-None) config
-                    confs.append(stdin_conf) # Add to the list of configs to be merged
+                if stdin_conf is not None:  # Check if parsing resulted in a valid (non-None) config
+                    confs.append(stdin_conf)  # Add to the list of configs to be merged
                     log.debug(f"# Config from stdin: {json.dumps(stdin_conf, indent=2) if DEBUG_MODE else 'loaded'}")
                 else:
                     log.debug("# stdin content parsed to None, not adding.")
@@ -390,13 +394,11 @@ def merge(
     elif stdin_format and sys.stdin.isatty():
         log.debug(f"# --stdin-format '{stdin_format}' provided, but no data piped to stdin.")
 
-
-
     final_conf = reduce_confs(confs)
     log.debug(f"# reduced confs: {json.dumps(final_conf, indent=2)}")
 
     merged_template = merge_template(template, final_conf) if template else ""
-        
+
     log.debug(f"# merged_template: {merged_template=}")
 
     diff = None
