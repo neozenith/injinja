@@ -1,3 +1,0 @@
-# Template using custom function
-product: {{ multiply(a, b) }}
-greeting: {{ greet('World') }}

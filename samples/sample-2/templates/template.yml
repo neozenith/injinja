@@ -1,3 +1,0 @@
-# Sample 2 template
-result: {{ a }} + {{ b }} = {{ a + b }}
-missing: {{ c | default('not found') }}
