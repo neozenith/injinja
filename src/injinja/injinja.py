@@ -496,6 +496,6 @@ def main(_args: list[str] | None = None) -> None:
     )
 
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
     main(sys.argv[1:])
