@@ -10,17 +10,19 @@ build: .venv/deps check
 	uv run -m build --wheel
 
 format: .venv/deps docs
-	uv run ruff format
-	uv run isort .
+	uvx ruff format src/ tests/ --respect-gitignore --line-length 120
+	uvx isort src/ tests/ --profile 'black'
 
 check: .venv/deps
-	uv run ruff check .
-	uv run isort . --check-only
+	uvx ruff check src/ tests/
+	uvx isort src/ tests/ --check-only
 	uv run mypy src/
 	uv run pytest
 
 docs:
-	uv run md_toc --in-place github --header-levels 2 *.md
+# 	uv run md_toc --in-place github --header-levels 2 *.md
+	uvx --from md-toc md_toc --in-place github --header-levels 2 *.md
+	uvx rumdl check . --fix --respect-gitignore -d MD013
 
 publish: build docs
 	uv run -m twine upload dist/*

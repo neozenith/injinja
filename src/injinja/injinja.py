@@ -2,11 +2,11 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-# "jinja2",
-# "PyYAML",
-# "deepmerge",
-# "types-PyYAML",
-# "types-jinja2"
+#   "jinja2",
+#   "PyYAML",
+#   "deepmerge",
+#   "types-PyYAML",
+#   "types-jinja2"
 # ]
 # ///
 # https://docs.astral.sh/uv/guides/scripts/#creating-a-python-script
@@ -25,6 +25,7 @@ import os
 import pathlib
 import shlex
 import sys
+import textwrap
 import tomllib
 from typing import Any
 
@@ -39,22 +40,19 @@ log = logging.getLogger(__name__)
 
 DEBUG_MODE = False
 TRACEBACK_SUPPRESSIONS = [jinja2]
-if "--debug" in sys.argv: # Finished with debug flag so it is safe to remove at this point.
+if "--debug" in sys.argv:  # Finished with debug flag so it is safe to remove at this point.
     DEBUG_MODE = True
     sys.argv.remove("--debug")
 
 log_level = logging.DEBUG if DEBUG_MODE else logging.INFO
-log_format = "%(asctime)s::%(name)s::%(levelname)s::%(module)s:%(funcName)s:%(lineno)d| %(message)s" if DEBUG_MODE else "%(message)s"
+log_format = (
+    "%(asctime)s::%(name)s::%(levelname)s::%(module)s:%(funcName)s:%(lineno)d| %(message)s"
+    if DEBUG_MODE
+    else "%(message)s"
+)
 log_date_format = "%Y-%m-%d %H:%M:%S"
 
-
-logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
-
-cli_config = {
-    "__doc__": {
-        "prog": "injinja",
-        "description": "Injinja: Injectable Jinja Configuration tool. Insanely configurable... config system.",
-    },
+CLI_CONFIG: dict[str, Any] = {
     "debug": True,
     # Gathering Environment variables for dynamic configuration
     "env": {
@@ -88,7 +86,7 @@ cli_config = {
     # Output file / stdout
     "output": "stdout",
     "validate": {"help": "Filename of an outputfile to validate the output against."},
-    "stdin-format": { # New argument for stdin format
+    "stdin-format": {  # New argument for stdin format
         "required": False,
         "default": None,
         "choices": ["json", "yml", "yaml", "toml"],
@@ -102,10 +100,25 @@ cli_config = {
 ########################################################################################
 
 
-def __argparse_factory(config):
+def __argparse_factory(config: dict[str, Any]) -> argparse.ArgumentParser:
     """Opinionated Argument Parser Factory."""
-    parser = argparse.ArgumentParser(**config["__doc__"])
-    del config["__doc__"]
+    parser = argparse.ArgumentParser(
+        prog="Injinja",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=textwrap.dedent("""Injinja: Injectable Jinja Configuration tool. Insanely configurable... config system.
+
+        - Collate DYNAMIC configuration from environment variables using --env, --prefix flags
+        - Collate the STATIC configuration (files) using the --config flags.
+        - DYNAMIC config templates the STATIC config.
+        - The _Templated STATIC Config_ is then applied to your target Jinja2 template file using the --template flag.
+        - The output is then rendered to either stdout or a target file.
+
+        OPTIONALLY:
+        - Can take custom Jinja2 Functions to inject into the Jinja2 Templating Engine Environment
+        - Can take a validation file to assist with checking expected templated output against a known file.
+        """),
+    )
+
     # Take a dictionary of configuration. The key is the flag name, the value is a dictionary of kwargs.
     for flag, flag_kwargs in config.items():
         # Automatically handle long and short case for flags
@@ -125,25 +138,26 @@ def __argparse_factory(config):
     return parser
 
 
-def __handle_args(parser, args):
+def __handle_args(parser: argparse.ArgumentParser, args: list[str] | None) -> dict[str, Any]:
+    """Handle CLI arguments into structured dictionary output."""
     script_filename = pathlib.Path(__file__).name
     # log.info(script_filename)
-    if script_filename in args:
+    if args is not None and script_filename in args:
         args.remove(script_filename)
     return vars(parser.parse_args(args))
 
 
 ########################################################################################
-# Environment Variables
+# Environment Variables Helpers
 ########################################################################################
 
 
 def __expand_files_or_globs_list(files_or_globs: list[str]) -> list[str]:
     """Given a list of files or glob patterns, expand them all and return a list of files."""
-    return list(itertools.chain.from_iterable([__expand_files_list(x) for x in files_or_globs]))
+    return list(itertools.chain.from_iterable([expand_files_list(x) for x in files_or_globs]))
 
 
-def __expand_files_list(file_or_glob: str) -> list[str]:
+def expand_files_list(file_or_glob: str) -> list[str]:
     """Automatically determine if a string is a file already or a glob pattern and expand it.
     Always return the resolved list of files."""
     if pathlib.Path(file_or_glob).is_file():
@@ -151,9 +165,21 @@ def __expand_files_list(file_or_glob: str) -> list[str]:
     return [str(p) for p in pathlib.Path().glob(file_or_glob)]
 
 
+def dict_from_keyvalue_list(args: list[str] | None = None) -> dict[str, str] | None:
+    """Convert a list of 'key=value' strings into a dictionary."""
+    return {k: v for k, v in [x.split("=") for x in args]} if args else None
+
+
+########################################################################################
+# .env Files - Standalone Parser
+########################################################################################
+
+
 def __parse_env_line(line: str) -> tuple[str | None, str | None]:
     """Parses a single line into a key-value pair. Handles quoted values and inline comments.
-    Returns (None, None) for invalid lines."""
+
+    Returns (None, None) for invalid lines.
+    """
     # Guard checks for empty lines or lines without '='
     line = line.strip()
     if not line or line.startswith("#") or "=" not in line:
@@ -187,9 +213,9 @@ def read_env_file(file_path: str) -> dict[str, str] | None:
     )
 
 
-def dict_from_keyvalue_list(args: list[str] | None = None) -> dict[str, str] | None:
-    """Convert a list of 'key=value' strings into a dictionary."""
-    return {k: v for k, v in [x.split("=") for x in args]} if args else None
+########################################################################################
+# Environment Variables from os.environ by PREFIX_
+########################################################################################
 
 
 def dict_from_prefixes(prefixes: list[str] | None = None) -> dict[str, str] | None:
@@ -199,6 +225,11 @@ def dict_from_prefixes(prefixes: list[str] | None = None) -> dict[str, str] | No
 
     env = os.environ
     return {k.upper(): v for k, v in env.items() for prefix in prefixes if k.lower().startswith(prefix.lower())}
+
+
+########################################################################################
+# Environment Variables - Top Level Handler
+########################################################################################
 
 
 def get_environment_variables(env_flags: list[str], prefixes_list: list[str]) -> dict[str, str]:
@@ -221,6 +252,11 @@ def get_environment_variables(env_flags: list[str], prefixes_list: list[str]) ->
 
     # Merge environment variables from all sources
     return functools.reduce(always_merger.merge, filter(None, envs_by_precedence), {})
+
+
+########################################################################################
+# Custom Jinja2 Function Loading
+########################################################################################
 
 
 def get_functions(functions: list[str]) -> dict[str, Any]:
@@ -275,16 +311,18 @@ def load_config(filename: str, environment_variables: dict[str, str] | None = No
 
     raise ValueError(f"File type of {filename} not supported.")  # pragma: no cover
 
+
 def parse_stdin_content(content: str, format_type: str) -> Any:
     """Helper function to parse stdin content based on format."""
     if format_type == "json":
         return json.loads(content)
     elif format_type in ("yaml", "yml"):
         return yaml.safe_load(content)
-    elif format_type == "toml": 
+    elif format_type == "toml":
         return tomllib.loads(content)
     # This case should ideally be caught by argparse choices, but as a fallback:
     raise ValueError(f"Unsupported stdin format: {format_type}")
+
 
 def merge_template(template_filename: str, config: dict[str, Any] | None) -> str:
     """Load a Jinja2 template from file and merge configuration."""
@@ -311,7 +349,16 @@ def merge_template(template_filename: str, config: dict[str, Any] | None) -> str
 
 
 def map_env_to_confs(config_files_or_globs: list[str], env: dict[str, Any]) -> list[dict[str, Any]]:
-    """Load and merge configuration files based on CLI arguments and environment variables."""
+    """Load and merge configuration files based on CLI arguments and environment variables.
+
+    The accumulated and merged 'environment variables' is then MAPPED to every config file.
+    Eg every config file is treated as a Jinja2 Template and the 'config' of those template IS the environment variables.
+
+    We wind up with a list of configuration dictionaries, each one maps to a single original config file.
+    So each STATIC config is populated in isolation with the DYNAMIC config (environment variables).
+
+    The final deepmerged config occurs in reduce_confs.
+    """
     log.debug(f"# config sources: {config_files_or_globs=}")
     all_conf_files = __expand_files_or_globs_list(config_files_or_globs)
     log.debug(f"# all_conf_files: {all_conf_files=}")
@@ -320,7 +367,12 @@ def map_env_to_confs(config_files_or_globs: list[str], env: dict[str, Any]) -> l
 
 
 def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
-    """Reduce a list of configuration dictionaries into a single dictionary."""
+    """Reduce a list of configuration dictionaries into a single dictionary.
+
+    This is the magic!
+
+    The order of your config files is important in how they layer over the top of each other for merging and overrides.
+    """
     return functools.reduce(always_merger.merge, confs, {})
 
 
@@ -328,17 +380,26 @@ def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
 # Main
 ########################################################################################
 def merge(
-    env: list[str] | None = None, 
-    config: list[str] | None = None, 
-    template: str = "", 
-    output: str = "stdout", 
-    validate: str | None = None, 
+    env: list[str] | None = None,
+    config: list[str] | None = None,
+    template: str = "",
+    output: str = "stdout",
+    validate: str | None = None,
     prefix: list[str] | None = None,
     functions: list[str] | None = None,
-    stdin_format: str | None = None, # Added stdin_format parameter
-
+    stdin_format: str | None = None,  # Added stdin_format parameter
 ) -> tuple[str, str | None]:
-    """Merge configuration files and Jinja2 template to produce a final configuration file."""
+    """Merge configuration files and Jinja2 template to produce a final configuration file.
+
+    This is the programmatic interface to:
+    - Take the DYNAMIC configuration (environment variables) and
+    - merge it with the STATIC configuration (files) to produce a _final complex configuration_.
+    - This final configuration is then applied to your target Jinja2 template file.
+
+    OPTIONALLY:
+    - Can take custom functions for use within the Jinja2 template engine.
+    - Can take a validation file to assist with checking expected templated output against a known file.
+    """
     # Defaults to empty lists
     # Setting mutables as defaults is not recommended.
     _env: list[str] = env or []
@@ -365,20 +426,19 @@ def merge(
     confs = map_env_to_confs(config_files_or_globs=_config, env=merged_env)
     log.debug(f"# confs: {json.dumps(confs, indent=2)}")
 
-
     # Configuration from stdin
-    # TODO: This is a configuration source is kind of dynamic like environment variables 
-    # and yet It is being treated like static config, which should be templated.
+    # TODO: This is a configuration source is kind of dynamic like environment variables
+    # and yet it is being treated like static config, which should be templated.
     # The main use case is chaining injinja with other tools like jq or yq.
     # Eg python3 injinja.py -c config/**/*.yml -o config-json | jq '.tables[] | keys' | python3 injinja.py --stdin-format json -t template.sql -o finalfile.sql
     if stdin_format and not sys.stdin.isatty():
         log.debug(f"# Reading config from stdin with format: {stdin_format}")
         stdin_content = sys.stdin.read()
-        if stdin_content.strip(): # Ensure content is not just whitespace
+        if stdin_content.strip():  # Ensure content is not just whitespace
             try:
                 stdin_conf = parse_stdin_content(stdin_content, stdin_format)
-                if stdin_conf is not None: # Check if parsing resulted in a valid (non-None) config
-                    confs.append(stdin_conf) # Add to the list of configs to be merged
+                if stdin_conf is not None:  # Check if parsing resulted in a valid (non-None) config
+                    confs.append(stdin_conf)  # Add to the list of configs to be merged
                     log.debug(f"# Config from stdin: {json.dumps(stdin_conf, indent=2) if DEBUG_MODE else 'loaded'}")
                 else:
                     log.debug("# stdin content parsed to None, not adding.")
@@ -390,13 +450,11 @@ def merge(
     elif stdin_format and sys.stdin.isatty():
         log.debug(f"# --stdin-format '{stdin_format}' provided, but no data piped to stdin.")
 
-
-
     final_conf = reduce_confs(confs)
     log.debug(f"# reduced confs: {json.dumps(final_conf, indent=2)}")
 
     merged_template = merge_template(template, final_conf) if template else ""
-        
+
     log.debug(f"# merged_template: {merged_template=}")
 
     diff = None
@@ -421,9 +479,10 @@ def merge(
     return merged_template, diff
 
 
-def main(args):
-    parser = __argparse_factory(cli_config)
-    args = __handle_args(parser, args)
+def main(_args: list[str] | None = None) -> None:
+    """CLI entry point."""
+    parser: argparse.ArgumentParser = __argparse_factory(CLI_CONFIG)
+    args: dict[str, Any] = __handle_args(parser, _args)
 
     merge(
         env=args["env"],
@@ -437,5 +496,6 @@ def main(args):
     )
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
+    logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
     main(sys.argv[1:])
