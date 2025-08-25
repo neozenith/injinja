@@ -1,0 +1,28 @@
+flowchart TD
+    output["`output_file / stdout `"]
+    environment_variable["
+    --env KEY=VALUE
+    ...
+    [--env KEY=VALUE]"]
+
+    config_file["base config file 
+    -c base.yml"]
+    glob_expression["Glob Expression
+    -c '**/*.yml'"]
+    override_file["base config file 
+    -c override.yml"]
+
+    template_file["Jinja Template file"]
+    validate["Validation File
+    --validate expeactations-override.yml"]
+    diff["Generate diff of output 
+    and validation file"]
+
+    environment_variable --> injinja.py
+    config_file --> injinja.py
+    glob_expression --> injinja.py
+    override_file --> injinja.py
+    template_file --> injinja.py
+    validate --> injinja.py
+    injinja.py --> output
+    injinja.py --> diff

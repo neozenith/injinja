@@ -1,0 +1,71 @@
+graph LR
+    subgraph Dynamic_Configuration
+        env_flags[--env KEY=VALUE]
+        env_file["--env .env"]
+        env_prefix[--prefix ENV_VAR_PREFIX ]
+        env_dict[env:dict]
+        env_prefix --> env_dict
+        env_flags --> env_dict
+        env_file --> env_dict
+    end
+    subgraph Static_Configuration
+        conf_file[--config FILENAME]
+        example_json[--config file.json]
+        example_toml[--config file.toml]
+        conf_glob["--config GLOB
+            eg --config **/*.yml
+        "]
+        conf_glob_expanded["
+            [
+                file1.yml,
+                file2.yml,
+                folder1/file1.yml,
+            ]
+        "]
+        conf_override[--config override.yml]
+        conf_list[" all_conf_files: list[str]
+            [
+                file.json,
+                file.toml,
+                file1.yml,
+                file2.yml,
+                folder1/file1.yml,
+                override.yml
+            ]
+        "]
+        conf_file --> example_json
+        conf_file --> example_toml
+        example_toml --> conf_list
+        example_json --> conf_list
+        conf_glob --> conf_glob_expanded
+        conf_glob_expanded --> conf_list
+        conf_override --> conf_list
+    end
+    subgraph Merged_Configuration
+        all_conf["all_conf_templated: 
+        list[dict[any, any]]"]
+        merged_conf
+        env_dict -->|"jinja2.render(**env)"| all_conf
+        conf_list -->|"Path.read_text()"| all_conf
+        all_conf -->|deepmerge.always_merger| merged_conf
+    end
+    subgraph Template
+        merged_conf --> merged_output
+        template_file --> merged_output
+    end
+    subgraph Output
+        stdout
+        config-json
+        config-yaml
+        output_file
+        merged_output --> stdout
+        merged_output --> config-json
+        merged_output --> config-yaml
+        merged_output --> output_file
+    end
+    subgraph Validation
+        validation_file
+
+        merged_output --> diff_output
+        validation_file --> diff_output
+    end
