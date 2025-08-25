@@ -9,26 +9,45 @@ _Insanely configurable... config system._
 - [injinja 🥷](#injinja-)
   - [Quickstart](#quickstart)
   - [Overview](#overview)
-  - [Usage](#usage)
-  - [Architecture](#architecture)
-  - [Advanced - Collections of config files](#advanced---collections-of-config-files)
-  - [Testing](#testing)
-  - [Debugging](#debugging)
+  - [User Guide](#user-guide)
+  - [Intermediate Guide](#intermediate-guide)
   - [Roadmap and TODO list](#roadmap-and-todo-list)
 
 <!--TOC-->
 
 ## Quickstart
 
+`injinja.py` is ~500 LOC and runs stand-alone. You can literally take that one file and embed it into your system right now.  
+
+This project aims to add some SLDC rigour, testing and publication around this one core file.
+
+**USAGE:**
+
 ```sh
-uv run injinja.py -t samples/templates/template.yml -c 'samples/config/*' -e home_dir="$HOME"
+uvx injinja -e home_dir="$HOME" -c 'samples/config/*' -t sql/ddl/warehouse__roles.sql.j2
+# OR
+uv run injinja.py -e home_dir="$HOME" -c 'samples/config/*' -t sql/ddl/warehouse__roles.sql.j2
 ```
+
+Two step templating configuration system:
+
+- Runtime `DYNAMIC` configuration (`-e` or `--env`)
+- Can template the `STATIC` configuration (`-c` or `--config`)
+- To allow deep and rich config to populate your `TEMPLATE` file (`-t` or `--template`).
+
+**WHY?**
+
+Imagine a folder full of database DDL SQL files that you want to template based on complex configurations your base templates use `Jinja2` syntax to iterate over all the possible variations.
+
+Now imagine maintaining entire copies of those config for `dev`, `test`, `prod`? No thank you.
+
+----
 
 ## Overview
 
-Inspired by my prior work [invoke_databricks_wheel_tasks](https://github.com/neozenith/invoke-databricks-wheel-tasks/blob/main/invoke_databricks_wheel_tasks/tasks.py#L81) and also a style of platform engineering I am seeing which is _configuration driven platform components_.
+Inspired by some prior work I have been icubating since 2021 and also a style of platform engineering I am seeing which is _configuration driven platform components_.
 
-This setup allows for configuration driven code based akin to Kubernetes, dbt etc with what I like to called `Folders of Config`.
+This setup allows for configuration driven code based akin to Kubernetes, dbt etc with what I like to called `Recursive Folders of Config`.
 
 - Split up `One Big Fat YAML` into many smaller sensible `.yml` files
 - Organise your `yml` config into hierarchical folders.
@@ -39,24 +58,7 @@ This setup allows for configuration driven code based akin to Kubernetes, dbt et
 
 Oh yeah, and then apply this ultra flexible config to your target jinja template output file.
 
-```mermaid
-flowchart TD
-    output["`output_file / stdout `"]
-    environment_variable["
-    --env KEY=VALUE
-    ...
-    [--env KEY=VALUE]"]
-
-    config_file["config file(s) 
-    (*.json, *.yml, *.toml)"]
-
-    template_file["Jinja Template file"]
-
-    environment_variable --> injinja.py
-    config_file --> injinja.py
-    template_file --> injinja.py
-    injinja.py --> output
-```
+![Overview Diagram](diagrams/overview.png)
 
 1. Literally **ANY** config schema in a file format YML, JSON or TOML can be treated as a _Jinja2 Template itself_.
    - This makes for **VERY** dynamic config.
@@ -65,132 +67,71 @@ flowchart TD
 
 Output defaults to `stdout` or an output file can be specified.
 
-This allows some "ahead-of-time config" and some "just-in-time config" to all be injected into a final output.
+This allows some "ahead-of-time config" (`STATIC`) and some "just-in-time config" (`DYNAMIC`) to all be injected into a final output.
+
 Absence of the "just-in-time" config results in merely merging the config file into the template.
 
 Templating variables and not providing a value will throw an error to ensure templating is correct at runtime.
 
-## Usage
+## User Guide
+
+### Installation
 
 ```sh
-pip install https://github.com/neozenith/injinja/archive/main.zip
+# Instant standalone tool use
+uvx injinja --help
+
+# OR install
+uv add injinja
+# OR
+pip install injinja
 ```
 
 ```sh
-USAGE: uv run injinja.py [--debug] [--template/-t TEMPLATE]  [--config/-c CONFIGFILE/GLOB] [--config/-c CONFIGFILE/GLOB] [--env KEY=VALUE] [--env KEY=VALUE] [--output OUTPUTFILE] [--validate/-v VALIDATION_FILE]
+injinja --help
+
+USAGE: Injinja [-h] [-d] [-e ENV] [-p PREFIX] [-c CONFIG] [-t TEMPLATE] [-f FUNCTIONS] [-o OUTPUT] [-v VALIDATE] [-s {json,yml,yaml,toml}]
+
+Injinja: Injectable Jinja Configuration tool. Insanely configurable... config system.
+
+        - Collate DYNAMIC configuration from environment variables using --env, --prefix flags
+        - Collate the STATIC configuration (files) using the --config flags.
+        - DYNAMIC config templates the STATIC config.
+        - The _Templated STATIC Config_ is then applied to your target Jinja2 template file using the --template flag.
+        - The output is then rendered to either stdout or a target file.
+
+        OPTIONALLY:
+        - Can take custom Jinja2 Functions to inject into the Jinja2 Templating Engine Environment
+        - Can take a validation file to assist with checking expected templated output against a known file.
+
+options:
+  -h, --help            show this help message and exit
+  -d, --debug
+  -e ENV, --env ENV     Environment variables to pass to the template. Can be KEY=VALUE or path to an .env file.
+  -p PREFIX, --prefix PREFIX
+                        Import all environment variables with given prefix. eg 'MYAPP_' could find MYAPP_NAME and will import as `myapp.name`. This argument can be repeated.
+  -c CONFIG, --config CONFIG
+                        The configuration file(s) to use. Either specify a single file, repeated config flags for multiple files or a glob pattern.
+  -t TEMPLATE, --template TEMPLATE
+                        The Jinja2 template file to use.
+  -f FUNCTIONS, --functions FUNCTIONS
+                        Path or glob pattern to a python file containing custom functions to use in the template.
+  -o OUTPUT, --output OUTPUT
+  -v VALIDATE, --validate VALIDATE
+                        Filename of an outputfile to validate the output against.
+  -s {json,yml,yaml,toml}, --stdin-format {json,yml,yaml,toml}
+                        Format of the configuration data piped via stdin (json, yaml, toml). If set, injinja will attempt to read from stdin. eg cat config.json | python3 injinja.py --stdin-format json
 ```
 
-One liner:
+## Intermediate Guide
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/neozenith/injinja/refs/heads/main/src/injinja/injinja.py | sh -c "python3 - -t template.j2 -c config.yml -e home_dir=$HOME"
-```
+### Architecture
 
-## Architecture
+![Architecture Diagram](diagrams/architecture.png)
 
-```mermaid
-graph LR
-    subgraph Dynamic_Configuration
-        env_flags[--env KEY=VALUE]
-        env_file["--env .env"]
-        env_prefix[--prefix ENV_VAR_PREFIX ]
-        env_dict[env:dict]
-        env_prefix --> env_dict
-        env_flags --> env_dict
-        env_file --> env_dict
-    end
-    subgraph Static_Configuration
-        conf_file[--config FILENAME]
-        example_json[--config file.json]
-        example_toml[--config file.toml]
-        conf_glob["--config GLOB
-            eg --config **/*.yml
-        "]
-        conf_glob_expanded["
-            [
-                file1.yml,
-                file2.yml,
-                folder1/file1.yml,
-            ]
-        "]
-        conf_override[--config override.yml]
-        conf_list[" all_conf_files: list[str]
-            [
-                file.json,
-                file.toml,
-                file1.yml,
-                file2.yml,
-                folder1/file1.yml,
-                override.yml
-            ]
-        "]
-        conf_file --> example_json
-        conf_file --> example_toml
-        example_toml --> conf_list
-        example_json --> conf_list
-        conf_glob --> conf_glob_expanded
-        conf_glob_expanded --> conf_list
-        conf_override --> conf_list
-    end
-    subgraph Merged_Configuration
-        all_conf["all_conf_templated: 
-        list[dict[any, any]]"]
-        merged_conf
-        env_dict -->|"jinja2.render(**env)"| all_conf
-        conf_list -->|"Path.read_text()"| all_conf
-        all_conf -->|deepmerge.always_merger| merged_conf
-    end
-    subgraph Template
-        merged_conf --> merged_output
-        template_file --> merged_output
-    end
-    subgraph Output
-        stdout
-        config-json
-        config-yaml
-        output_file
-        merged_output --> stdout
-        merged_output --> config-json
-        merged_output --> config-yaml
-        merged_output --> output_file
-    end
-    subgraph Validation
-        validation_file
+#### Advanced - Collections of config files
 
-        merged_output --> diff_output
-        validation_file --> diff_output
-    end
-
-```
-
-## Advanced - Collections of config files
-
-```mermaid
-flowchart TD
-    output["`output_file / stdout `"]
-    environment_variable["
-    --env KEY=VALUE
-    ...
-    [--env KEY=VALUE]"]
-
-    config_file["base config file 
-    -c base.yml"]
-    glob_expression["Glob Expression
-    -c '**/*.yml'"]
-    override_file["base config file 
-    -c override.yml"]
-
-    template_file["Jinja Template file"]
-
-    environment_variable --> injinja.py
-    config_file --> injinja.py
-    glob_expression --> injinja.py
-    override_file --> injinja.py
-    template_file --> injinja.py
-
-    injinja.py --> output
-
-```
+![Collections of Configs](diagrams/collections_of_configs.png)
 
 - Firstly the `--env` flags are collected and turned into a `dict`
 - Next the `--config/-c` flags are collected
@@ -200,48 +141,19 @@ flowchart TD
 - This list of configs are each independently templated with the `dict` from `--env`
 - They then use `deepmerge.always_merger` to iteratively layer the config to make a final config. (Hence the importance of the ordering of flags.)
 
-## Testing
+#### Testing
 
-```mermaid
-flowchart TD
-    output["`output_file / stdout `"]
-    environment_variable["
-    --env KEY=VALUE
-    ...
-    [--env KEY=VALUE]"]
-
-    config_file["base config file 
-    -c base.yml"]
-    glob_expression["Glob Expression
-    -c '**/*.yml'"]
-    override_file["base config file 
-    -c override.yml"]
-
-    template_file["Jinja Template file"]
-    validate["Validation File
-    --validate expeactations-override.yml"]
-    diff["Generate diff of output 
-    and validation file"]
-
-    environment_variable --> injinja.py
-    config_file --> injinja.py
-    glob_expression --> injinja.py
-    override_file --> injinja.py
-    template_file --> injinja.py
-    validate --> injinja.py
-    injinja.py --> output
-    injinja.py --> diff
-```
+![Testing Diagram](diagrams/testing.png)
 
 For the sake of some testing, adding the flag for a fixed text output allows the use of `difflib` to generate a text diff for sanity checking output from an expectation.
 
-## Debugging
+### Debugging
 
-### Export Merged Config
+#### Export Merged Config
 
 Addded the `--output` options of either `config-json` or `config-yaml` / `config-yml`, which will actually output the merged config to `stdout`. This can then be filtered and triaged using tools like `jq` or `yq`.
 
-### Stream Config from `stdin`
+#### Stream Config from `stdin`
 
 Added the `--stdin-format json` and `--stdin-format yml` so that we can stream input that is potentially the output of `jq` and continue templating.
 
@@ -262,4 +174,4 @@ python3 injinja.py --stdin-format json -t template.sql -o finalfile.sql
 
 ## Roadmap and TODO list
 
-[Open Issues Raised by `neozenith`](https://github.com/neozenith/injinja/issues?q=is%3Aissue%20state%3Aopen%20author%3Aneozenith)
+[Open Issues that are raised by `neozenith`](https://github.com/neozenith/injinja/issues?q=is%3Aissue%20state%3Aopen%20author%3Aneozenith)

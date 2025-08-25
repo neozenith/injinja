@@ -1,0 +1,16 @@
+flowchart TD
+    output["`output_file / stdout `"]
+    environment_variable["
+    --env KEY=VALUE
+    ...
+    [--env KEY=VALUE]"]
+
+    config_file["config file(s) 
+    (*.json, *.yml, *.toml)"]
+
+    template_file["Jinja Template file"]
+
+    environment_variable --> injinja.py
+    config_file --> injinja.py
+    template_file --> injinja.py
+    injinja.py --> output

@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools >= 61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build >= 0.7.19, <0.9.0"]
+build-backend = "uv_build"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -8,14 +8,41 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
-
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
 
 [project]
+requires-python = ">=3.12"
 name = "injinja"
-version = "0.1.0"
+version = "1.0.0rc2"
 description = "Injinja: Injectable Jinja Configuration tool. Insanely configurable... config system."
 readme = "README.md"
-requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+authors = [
+  {name = "Josh Peak", email = "neozenith.dev@gmail.com"},
+]
+maintainers = [
+  {name = "Josh Peak", email = "neozenith.dev@gmail.com"}
+]
+classifiers = [
+  # How mature is this project? Common values are
+  #   3 - Alpha
+  #   4 - Beta
+  #   5 - Production/Stable
+  "Development Status :: 5 - Production/Stable",
+
+  # Indicate who your project is intended for
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Build Tools",
+
+  # Specify the Python versions you support here.
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "jinja2",
     "PyYAML",
@@ -24,10 +51,17 @@ dependencies = [
     "types-jinja2"
 ]
 
+[project.urls]
+Homepage = "https://github.com/neozenith/injinja"
+Documentation = "https://github.com/neozenith/injinja"
+Repository = "https://github.com/neozenith/injinja.git"
+Issues = "https://github.com/neozenith/injinja/issues"
+Changelog = "https://github.com/neozenith/injinja/releases"
+
+
+
 [project.scripts]
 injinja = "injinja.injinja:main"
-
-
 
 [dependency-groups]
 dev = [
@@ -96,7 +130,7 @@ omit = [
 [tool.pytest.ini_options]
 minversion = "6.0"
 
-addopts = "-s -vvv --color=yes -n auto --cov-report=html --cov-report=term --cov=src --cov-branch"
+addopts = "-s -vvv --color=yes -n auto --cov-report=html --cov-report=term --cov=src --cov-branch --cov-fail-under=91"
 
 [tool.mypy]
 pretty = true
