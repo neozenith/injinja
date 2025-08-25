@@ -17,7 +17,5 @@ def test_main(sample):
 
     for template in templates:
         for expectation in expectations:
-            merged_template, diff = merge(
-                config=configs, validate=expectation, functions=functions, template=template
-            )
+            merged_template, diff = merge(config=configs, validate=expectation, functions=functions, template=template)
             assert diff == ""

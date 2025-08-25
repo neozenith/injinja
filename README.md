@@ -1,13 +1,13 @@
 # injinja 🥷
 
-Injinja: **Inj**ectable **Jinja** Configuration tool. 
+Injinja: **Inj**ectable **Jinja** Configuration tool.  
 
 _Insanely configurable... config system._
 
 <!--TOC-->
 
 - [injinja 🥷](#injinja-)
-- [Quickstart](#quickstart)
+  - [Quickstart](#quickstart)
   - [Overview](#overview)
   - [Usage](#usage)
   - [Architecture](#architecture)
@@ -18,7 +18,7 @@ _Insanely configurable... config system._
 
 <!--TOC-->
 
-# Quickstart
+## Quickstart
 
 ```sh
 uv run injinja.py -t samples/templates/template.yml -c 'samples/config/*' -e home_dir="$HOME"
@@ -58,11 +58,10 @@ flowchart TD
     injinja.py --> output
 ```
 
-
 1. Literally **ANY** config schema in a file format YML, JSON or TOML can be treated as a _Jinja2 Template itself_.
-    - This makes for **VERY** dynamic config.
-1. Then that config **IS** the config provided for a target Jinja template.
-1. This final template could be terraform, SQL, js, python or even more JSON or YAML.
+   - This makes for **VERY** dynamic config.
+2. Then that config **IS** the config provided for a target Jinja template.
+3. This final template could be terraform, SQL, js, python or even more JSON or YAML.
 
 Output defaults to `stdout` or an output file can be specified.
 
@@ -88,9 +87,6 @@ curl -fsSL https://raw.githubusercontent.com/neozenith/injinja/refs/heads/main/s
 ```
 
 ## Architecture
-
-
-
 
 ```mermaid
 graph LR
@@ -167,8 +163,6 @@ graph LR
 
 ```
 
-
-
 ## Advanced - Collections of config files
 
 ```mermaid
@@ -193,16 +187,16 @@ flowchart TD
     glob_expression --> injinja.py
     override_file --> injinja.py
     template_file --> injinja.py
-    
+
     injinja.py --> output
-    
+
 ```
 
 - Firstly the `--env` flags are collected and turned into a `dict`
 - Next the `--config/-c` flags are collected
-    - If the value passes the `pathlib.Path(c).is_file()` check then it is used as-is.
-    - If it fails the above check then it is attempted to be expanded using `glob.glob(c)`
-    - The order of the `-c` flags allow re-specifying the same file again as the last file to ensure it is an override file.
+  - If the value passes the `pathlib.Path(c).is_file()` check then it is used as-is.
+  - If it fails the above check then it is attempted to be expanded using `glob.glob(c)`
+  - The order of the `-c` flags allow re-specifying the same file again as the last file to ensure it is an override file.
 - This list of configs are each independently templated with the `dict` from `--env`
 - They then use `deepmerge.always_merger` to iteratively layer the config to make a final config. (Hence the importance of the ordering of flags.)
 

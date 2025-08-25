@@ -55,7 +55,7 @@ select = [
     "UP", # pyupgrade
     "B", # flake8-bugbear
     "SIM", # flake8-simplify
-    "I", # isort
+    # "I", # isort
     "PTH", # falek8-use-pathlib 
     "TCH", # flake8-type-checking
     # "S", # flake8-bandit
@@ -87,4 +87,17 @@ import_heading_thirdparty = "Third Party"
 minversion = "6.0"
 
 addopts = "-s -vvv --color=yes -n auto --cov-report=html --cov-report=term --cov=src --cov-branch"
+
+[tool.mypy]
+pretty = true
+exclude = [
+  'tests/',
+  '.venv/',
+  'docs/'
+]
+follow_imports = 'silent'
+ignore_missing_imports = true
+
+# Work your way up to these:
+strict = true
 

@@ -1,3 +1,10 @@
+"""
+USAGE:
+python3 -m injinja --help
+OR
+uv run -m injinja --help
+"""
+
 # Standard Library
 import sys
 
