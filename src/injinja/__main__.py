@@ -1,3 +1,4 @@
+# pragma: no cover
 """
 USAGE:
 python3 -m injinja --help
@@ -10,5 +11,5 @@ import sys
 
 from .injinja import main
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     main(sys.argv[1:])

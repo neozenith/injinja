@@ -1,4 +1,0 @@
-common:
-  project_name: 'My Project'
-  description: 'My Project Description'
-  directory: {{ home_dir}}

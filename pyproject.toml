@@ -82,6 +82,10 @@ import_heading_stdlib = "Standard Library"
 import_heading_firstparty = "Our Libraries"
 import_heading_thirdparty = "Third Party"
 
+[tool.coverage.run]
+omit = [
+    "**/__main__.py"
+]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

@@ -154,10 +154,10 @@ def __handle_args(parser: argparse.ArgumentParser, args: list[str] | None) -> di
 
 def __expand_files_or_globs_list(files_or_globs: list[str]) -> list[str]:
     """Given a list of files or glob patterns, expand them all and return a list of files."""
-    return list(itertools.chain.from_iterable([__expand_files_list(x) for x in files_or_globs]))
+    return list(itertools.chain.from_iterable([expand_files_list(x) for x in files_or_globs]))
 
 
-def __expand_files_list(file_or_glob: str) -> list[str]:
+def expand_files_list(file_or_glob: str) -> list[str]:
     """Automatically determine if a string is a file already or a glob pattern and expand it.
     Always return the resolved list of files."""
     if pathlib.Path(file_or_glob).is_file():
@@ -496,6 +496,6 @@ def main(_args: list[str] | None = None) -> None:
     )
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
     main(sys.argv[1:])
