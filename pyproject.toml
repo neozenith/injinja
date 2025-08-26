@@ -17,7 +17,7 @@ explicit = true
 [project]
 requires-python = ">=3.12"
 name = "injinja"
-version = "1.0.0rc2"
+version = "1.0.0"
 description = "Injinja: Injectable Jinja Configuration tool. Insanely configurable... config system."
 readme = "README.md"
 license = "MIT"
