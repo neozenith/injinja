@@ -9,13 +9,18 @@ from unittest.mock import patch
 
 # Third Party
 import pytest
-import yaml
 from jinja2.filters import FILTERS
+from ruamel.yaml import YAML
+
+# Initialize YAML instance
+yaml = YAML()
 
 # Our Libraries
 from injinja.injinja import (
     dict_from_keyvalue_list,
     dict_from_prefixes,
+    dump_data_to_file_or_stdout,
+    dump_templated_configs,
     expand_files_list,
     get_environment_variables,
     get_functions,
@@ -273,27 +278,6 @@ class TestMergeFunction:
 
         assert output.read_text() == "Content"
 
-    def test_merge_config_json_output(self, tmp_path, capsys):
-        """Test merge with config-json output."""
-        config = tmp_path / "config.json"
-        config.write_text('{"key": "value"}')
-
-        merge(config=[str(config)], output="config-json")
-
-        captured = capsys.readouterr()
-        output = json.loads(captured.out)
-        assert output == {"key": "value"}
-
-    def test_merge_config_yaml_output(self, tmp_path, capsys):
-        """Test merge with config-yaml output."""
-        config = tmp_path / "config.json"
-        config.write_text('{"key": "value"}')
-
-        merge(config=[str(config)], output="config-yaml")
-
-        captured = capsys.readouterr()
-        output = yaml.safe_load(captured.out)
-        assert output == {"key": "value"}
 
     @pytest.mark.skip(
         reason="""
@@ -434,3 +418,168 @@ class TestEdgeCases:
         result = expand_files_list(glob_path_str)
         shutil.rmtree(relative_tmp_path / "expand_files_list")
         assert result == [str(temp_file_1), str(temp_file_2)]
+
+
+class TestDumpFunctionality:
+    """Test the new dump functionality for config auditing."""
+
+    def test_dump_data_to_file_or_stdout_json_stdout(self, capsys):
+        """Test dump_data_to_file_or_stdout with JSON to stdout."""
+        data = {"key": "value", "number": 42}
+        dump_data_to_file_or_stdout(data, "json")
+        
+        captured = capsys.readouterr()
+        output = json.loads(captured.out)
+        assert output == {"key": "value", "number": 42}
+
+    def test_dump_data_to_file_or_stdout_yaml_stdout(self, capsys):
+        """Test dump_data_to_file_or_stdout with YAML to stdout."""
+        data = {"key": "value", "number": 42}
+        dump_data_to_file_or_stdout(data, "yaml")
+        
+        captured = capsys.readouterr()
+        output = yaml.load(captured.out)
+        assert output == {"key": "value", "number": 42}
+
+    def test_dump_data_to_file_or_stdout_json_file(self, tmp_path):
+        """Test dump_data_to_file_or_stdout with JSON to file."""
+        data = {"key": "value", "number": 42}
+        output_file = tmp_path / "output.json"
+        dump_data_to_file_or_stdout(data, str(output_file))
+        
+        assert output_file.exists()
+        result = json.loads(output_file.read_text())
+        assert result == {"key": "value", "number": 42}
+
+    def test_dump_data_to_file_or_stdout_yaml_file(self, tmp_path):
+        """Test dump_data_to_file_or_stdout with YAML to file."""
+        data = {"key": "value", "number": 42}
+        output_file = tmp_path / "output.yaml"
+        dump_data_to_file_or_stdout(data, str(output_file))
+        
+        assert output_file.exists()
+        with open(output_file, 'r') as f:
+            result = yaml.load(f)
+        assert result == {"key": "value", "number": 42}
+
+    def test_dump_data_to_file_or_stdout_unknown_extension(self, tmp_path):
+        """Test dump_data_to_file_or_stdout defaults to JSON for unknown extensions."""
+        data = {"key": "value"}
+        output_file = tmp_path / "output.unknown"
+        dump_data_to_file_or_stdout(data, str(output_file))
+        
+        assert output_file.exists()
+        result = json.loads(output_file.read_text())
+        assert result == {"key": "value"}
+
+    def test_dump_templated_configs(self, tmp_path):
+        """Test dump_templated_configs preserves file structure."""
+        # Create test config files
+        json_config = tmp_path / "config.json"
+        json_config.write_text('{"name": "{{ env_var }}", "type": "json"}')
+        
+        yaml_config = tmp_path / "config.yaml"
+        yaml_config.write_text('name: "{{ env_var }}"\ntype: yaml\n# This is a comment')
+        
+        output_dir = tmp_path / "output"
+        env_vars = {"env_var": "test_value"}
+        
+        dump_templated_configs([str(json_config), str(yaml_config)], env_vars, str(output_dir))
+        
+        # Check that files were created
+        assert (output_dir / "config.json").exists()
+        assert (output_dir / "config.yaml").exists()
+        
+        # Check JSON content
+        json_result = json.loads((output_dir / "config.json").read_text())
+        assert json_result == {"name": "test_value", "type": "json"}
+        
+        # Check YAML content
+        with open(output_dir / "config.yaml", 'r') as f:
+            yaml_result = yaml.load(f)
+        assert yaml_result == {"name": "test_value", "type": "yaml"}
+
+    def test_merge_with_dump_env(self, tmp_path, capsys):
+        """Test merge with dump_env flag."""
+        template = tmp_path / "template.txt"
+        template.write_text("Hello {{ name }}")
+        
+        config = tmp_path / "config.json"
+        config.write_text('{"name": "World"}')
+        
+        merge(
+            config=[str(config)], 
+            template=str(template), 
+            env=["TEST_VAR=test_value"],
+            dump_env="json"
+        )
+        
+        captured = capsys.readouterr()
+        # The dump_env output should be in stdout
+        lines = captured.out.strip().split('\n')
+        env_output = json.loads(lines[0])  # First line should be the env dump
+        assert env_output["TEST_VAR"] == "test_value"
+
+    def test_merge_with_dump_merged(self, tmp_path, capsys):
+        """Test merge with dump_merged flag."""
+        template = tmp_path / "template.txt"
+        template.write_text("Hello {{ name }}")
+        
+        config = tmp_path / "config.json"
+        config.write_text('{"name": "World", "greeting": "Hello"}')
+        
+        merge(
+            config=[str(config)], 
+            template=str(template),
+            dump_merged="json"
+        )
+        
+        captured = capsys.readouterr()
+        lines = captured.out.strip().split('\n')
+        merged_output = json.loads(lines[0])
+        assert merged_output == {"name": "World", "greeting": "Hello"}
+
+    def test_merge_with_dump_confs(self, tmp_path):
+        """Test merge with dump_confs flag."""
+        template = tmp_path / "template.txt"
+        template.write_text("Hello {{ name }}")
+        
+        config = tmp_path / "config.json"
+        config.write_text('{"name": "{{ env_var }}"}')
+        
+        output_dir = tmp_path / "dump_output"
+        
+        merge(
+            config=[str(config)], 
+            template=str(template),
+            env=["env_var=World"],
+            dump_confs=str(output_dir)
+        )
+        
+        # Check that the config was dumped
+        dumped_config = output_dir / "config.json"
+        assert dumped_config.exists()
+        result = json.loads(dumped_config.read_text())
+        assert result == {"name": "World"}
+
+    def test_main_with_dump_flags(self, tmp_path):
+        """Test main function with dump flags."""
+        template = tmp_path / "template.txt"
+        template.write_text("Test")
+        
+        config = tmp_path / "config.json"
+        config.write_text('{"key": "value"}')
+        
+        dump_file = tmp_path / "merged.json"
+        
+        with patch("injinja.injinja.merge") as mock_merge:
+            mock_merge.return_value = ("Test", None)
+            main([
+                "-t", str(template),
+                "-c", str(config),
+                "--dump-merged", str(dump_file)
+            ])
+            
+            mock_merge.assert_called_once()
+            call_args = mock_merge.call_args[1]
+            assert call_args["dump_merged"] == str(dump_file)

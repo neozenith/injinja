@@ -3,9 +3,8 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #   "jinja2",
-#   "PyYAML",
+#   "ruamel.yaml",
 #   "deepmerge",
-#   "types-PyYAML",
 #   "types-jinja2"
 # ]
 # ///
@@ -31,12 +30,17 @@ from typing import Any
 
 # Third Party
 import jinja2
-import yaml
 from deepmerge import always_merger
+from ruamel.yaml import YAML
 from jinja2.filters import FILTERS
 from jinja2.tests import TESTS
 
 log = logging.getLogger(__name__)
+
+# Initialize YAML instance for ruamel.yaml
+yaml = YAML()
+yaml.preserve_quotes = True
+yaml.default_flow_style = False
 
 DEBUG_MODE = False
 TRACEBACK_SUPPRESSIONS = [jinja2]
@@ -91,6 +95,22 @@ CLI_CONFIG: dict[str, Any] = {
         "default": None,
         "choices": ["json", "yml", "yaml", "toml"],
         "help": "Format of the configuration data piped via stdin (json, yaml, toml). If set, injinja will attempt to read from stdin. eg cat config.json | python3 injinja.py --stdin-format json",
+    },
+    # New dump flags for config auditing
+    "dump-env": {
+        "required": False,
+        "default": None,
+        "help": "Dump merged environment variables to a file. Specify filename or format (json/yaml) for stdout.",
+    },
+    "dump-confs": {
+        "required": False,
+        "default": None,
+        "help": "Dump templated configuration files to a directory. Preserves file structure and comments.",
+    },
+    "dump-merged": {
+        "required": False,
+        "default": None,
+        "help": "Dump final merged configuration to a file. Specify filename or format (json/yaml) for stdout.",
     },
 }
 
@@ -305,7 +325,7 @@ def load_config(filename: str, environment_variables: dict[str, str] | None = No
     if filename.lower().endswith("json"):
         return json.loads(content)
     elif any([filename.lower().endswith(ext) for ext in ["yml", "yaml"]]):
-        return yaml.safe_load(content)
+        return yaml.load(content)
     elif filename.lower().endswith("toml"):
         return tomllib.loads(content)
 
@@ -317,11 +337,87 @@ def parse_stdin_content(content: str, format_type: str) -> Any:
     if format_type == "json":
         return json.loads(content)
     elif format_type in ("yaml", "yml"):
-        return yaml.safe_load(content)
+        return yaml.load(content)
     elif format_type == "toml":
         return tomllib.loads(content)
     # This case should ideally be caught by argparse choices, but as a fallback:
     raise ValueError(f"Unsupported stdin format: {format_type}")
+
+
+def dump_data_to_file_or_stdout(data: Any, output_spec: str) -> None:
+    """Dump data to file or stdout based on output specification.
+    
+    Args:
+        data: The data to dump
+        output_spec: Either a filename, 'json' for stdout JSON, or 'yaml'/'yml' for stdout YAML
+    """
+    if output_spec in ("json",):
+        print(json.dumps(data, indent=2))
+    elif output_spec in ("yaml", "yml"):
+        yaml.dump(data, sys.stdout)
+    else:
+        # Treat as filename
+        output_path = pathlib.Path(output_spec)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        if output_spec.lower().endswith(".json"):
+            output_path.write_text(json.dumps(data, indent=2))
+        elif any(output_spec.lower().endswith(ext) for ext in [".yml", ".yaml"]):
+            with open(output_path, 'w') as f:
+                yaml.dump(data, f)
+        else:
+            # Default to JSON for unknown extensions
+            output_path.write_text(json.dumps(data, indent=2))
+
+
+def dump_templated_configs(config_files_or_globs: list[str], env: dict[str, Any], output_dir: str) -> None:
+    """Dump templated configuration files to output directory, preserving structure.
+    
+    Args:
+        config_files_or_globs: List of config file patterns
+        env: Environment variables for templating
+        output_dir: Output directory to dump files to
+    """
+    all_conf_files = __expand_files_or_globs_list(config_files_or_globs)
+    output_path = pathlib.Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    for conf_file in all_conf_files:
+        # Template the file content
+        templated_content = merge_template(conf_file, env)
+        
+        # Preserve relative directory structure
+        conf_path = pathlib.Path(conf_file)
+        relative_path = conf_path.name  # For now, just use filename
+        output_file = output_path / relative_path
+        
+        # Create directory if needed
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write templated content preserving format
+        if conf_file.lower().endswith(".json"):
+            # For JSON, parse and re-dump to ensure valid format
+            try:
+                data = json.loads(templated_content)
+                output_file.write_text(json.dumps(data, indent=2))
+            except json.JSONDecodeError:
+                # Fallback to raw content if not valid JSON
+                output_file.write_text(templated_content)
+        elif any(conf_file.lower().endswith(ext) for ext in [".yml", ".yaml"]):
+            # For YAML, write using ruamel.yaml to preserve comments/formatting
+            try:
+                data = yaml.load(templated_content)
+                with open(output_file, 'w') as f:
+                    yaml.dump(data, f)
+            except Exception:
+                # Fallback to raw content if YAML parsing fails
+                output_file.write_text(templated_content)
+        elif conf_file.lower().endswith(".toml"):
+            # For TOML, just write the templated content (no preservation needed)
+            output_file.write_text(templated_content)
+        else:
+            # For unknown formats, write raw content
+            output_file.write_text(templated_content)
 
 
 def merge_template(template_filename: str, config: dict[str, Any] | None) -> str:
@@ -388,6 +484,9 @@ def merge(
     prefix: list[str] | None = None,
     functions: list[str] | None = None,
     stdin_format: str | None = None,  # Added stdin_format parameter
+    dump_env: str | None = None,
+    dump_confs: str | None = None,
+    dump_merged: str | None = None,
 ) -> tuple[str, str | None]:
     """Merge configuration files and Jinja2 template to produce a final configuration file.
 
@@ -463,14 +562,18 @@ def merge(
         diff = "\n".join(difflib.unified_diff(merged_template.splitlines(), validator_text.splitlines(), lineterm=""))
         log.debug(diff)
 
-    # Special scenarios that emit only the internal configuration and skip the final template.
-    if output == "config-json":
-        print(json.dumps(final_conf, indent=2))
-    elif output in ("config-yaml", "config-yml"):
-        print(yaml.dump(final_conf, indent=2))
+    # Handle dump flags for configuration auditing
+    if dump_env:
+        dump_data_to_file_or_stdout(merged_env, dump_env)
+    
+    if dump_confs:
+        dump_templated_configs(_config, merged_env, dump_confs)
+        
+    if dump_merged:
+        dump_data_to_file_or_stdout(final_conf, dump_merged)
 
     # Apply configuration to the template and write to file or stdout
-    elif output == "stdout":
+    if output == "stdout":
         print(merged_template)
     else:
         pathlib.Path(output).parent.mkdir(parents=True, exist_ok=True)
@@ -493,6 +596,9 @@ def main(_args: list[str] | None = None) -> None:
         prefix=args["prefix"],
         functions=args["functions"],
         stdin_format=args["stdin_format"],
+        dump_env=args["dump_env"],
+        dump_confs=args["dump_confs"],
+        dump_merged=args["dump_merged"],
     )
 
 
