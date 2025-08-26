@@ -1,0 +1,57 @@
+<!-- Injinja Logo Option 1: Ninja Cat with Configuration Scrolls -->
+<svg width="200" height="120" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="catGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A5568;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2D3748;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="scrollGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F7FAFC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E2E8F0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Configuration Scrolls in Background -->
+  <rect x="15" y="25" width="35" height="8" rx="2" fill="url(#scrollGradient)" stroke="#CBD5E0" stroke-width="0.5"/>
+  <rect x="15" y="37" width="28" height="6" rx="1" fill="#EDF2F7" stroke="#CBD5E0" stroke-width="0.5"/>
+  <rect x="15" y="47" width="32" height="6" rx="1" fill="#EDF2F7" stroke="#CBD5E0" stroke-width="0.5"/>
+  
+  <rect x="150" y="30" width="35" height="8" rx="2" fill="url(#scrollGradient)" stroke="#CBD5E0" stroke-width="0.5"/>
+  <rect x="150" y="42" width="25" height="6" rx="1" fill="#EDF2F7" stroke="#CBD5E0" stroke-width="0.5"/>
+  <rect x="150" y="52" width="30" height="6" rx="1" fill="#EDF2F7" stroke="#CBD5E0" stroke-width="0.5"/>
+  
+  <!-- Main Cat Body -->
+  <ellipse cx="100" cy="75" rx="35" ry="25" fill="url(#catGradient)"/>
+  
+  <!-- Cat Head -->
+  <circle cx="100" cy="45" r="22" fill="url(#catGradient)"/>
+  
+  <!-- Cat Ears -->
+  <path d="M85 30 L90 20 L95 30 Z" fill="url(#catGradient)"/>
+  <path d="M105 30 L110 20 L115 30 Z" fill="url(#catGradient)"/>
+  <path d="M87 28 L89 23 L91 28 Z" fill="#E53E3E"/>
+  <path d="M109 28 L111 23 L113 28 Z" fill="#E53E3E"/>
+  
+  <!-- Ninja Mask -->
+  <rect x="85" y="38" width="30" height="12" rx="6" fill="#1A202C"/>
+  
+  <!-- Cat Eyes (visible through mask) -->
+  <circle cx="92" cy="43" r="3" fill="#38B2AC"/>
+  <circle cx="108" cy="43" r="3" fill="#38B2AC"/>
+  <ellipse cx="92" cy="43" rx="1" ry="2" fill="#1A202C"/>
+  <ellipse cx="108" cy="43" rx="1" ry="2" fill="#1A202C"/>
+  
+  <!-- Cat Paws -->
+  <ellipse cx="80" cy="85" rx="6" ry="8" fill="url(#catGradient)"/>
+  <ellipse cx="120" cy="85" rx="6" ry="8" fill="url(#catGradient)"/>
+  
+  <!-- Jinja Template Symbols -->
+  <text x="88" y="70" fill="#E2E8F0" font-family="monospace" font-size="8">{{ }}</text>
+  <text x="100" y="82" fill="#E2E8F0" font-family="monospace" font-size="6">{%  %}</text>
+  
+  <!-- Cat Tail -->
+  <path d="M130 70 Q140 60 145 75 Q140 85 135 80" stroke="url(#catGradient)" stroke-width="6" fill="none" stroke-linecap="round"/>
+  
+  <!-- Project Name -->
+  <text x="100" y="110" text-anchor="middle" fill="#2D3748" font-family="sans-serif" font-weight="bold" font-size="14">injinja</text>
+</svg>

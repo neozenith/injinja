@@ -1,0 +1,86 @@
+<!-- Injinja Logo Option 3: Template Fox with Magical Elements -->
+<svg width="200" height="120" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="foxGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F56500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C53030;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tailGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F56500;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FBB6CE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F56500;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Magical Template Sparkles -->
+  <circle cx="40" cy="25" r="2" fill="#FFD700" filter="url(#glow)">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="160" cy="30" r="1.5" fill="#FFD700" filter="url(#glow)">
+    <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="25" cy="60" r="1" fill="#FFD700" filter="url(#glow)">
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="1.8s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="175" cy="55" r="1.5" fill="#FFD700" filter="url(#glow)">
+    <animate attributeName="opacity" values="1;0.5;1" dur="2.2s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Template Code Fragments -->
+  <rect x="20" y="35" width="25" height="6" rx="1" fill="#E2E8F0" opacity="0.8"/>
+  <text x="22" y="40" fill="#4A5568" font-family="monospace" font-size="4">{{var}}</text>
+  
+  <rect x="155" y="45" width="30" height="6" rx="1" fill="#E2E8F0" opacity="0.8"/>
+  <text x="157" y="50" fill="#4A5568" font-family="monospace" font-size="4">{%for%}</text>
+  
+  <!-- Fox Body -->
+  <ellipse cx="100" cy="70" rx="22" ry="18" fill="url(#foxGradient)"/>
+  
+  <!-- Fox Head -->
+  <ellipse cx="100" cy="45" rx="18" ry="15" fill="url(#foxGradient)"/>
+  
+  <!-- Fox Ears -->
+  <ellipse cx="88" cy="32" rx="6" ry="10" fill="url(#foxGradient)" transform="rotate(-20 88 32)"/>
+  <ellipse cx="112" cy="32" rx="6" ry="10" fill="url(#foxGradient)" transform="rotate(20 112 32)"/>
+  <ellipse cx="88" cy="32" rx="3" ry="6" fill="#2D3748" transform="rotate(-20 88 32)"/>
+  <ellipse cx="112" cy="32" rx="3" ry="6" fill="#2D3748" transform="rotate(20 112 32)"/>
+  
+  <!-- Fox Face -->
+  <ellipse cx="100" cy="50" rx="8" ry="6" fill="#FFF5F5"/>
+  
+  <!-- Fox Eyes -->
+  <ellipse cx="95" cy="44" rx="3" ry="4" fill="#2D3748"/>
+  <ellipse cx="105" cy="44" rx="3" ry="4" fill="#2D3748"/>
+  <ellipse cx="95" cy="43" rx="1" ry="1.5" fill="#F7FAFC"/>
+  <ellipse cx="105" cy="43" rx="1" ry="1.5" fill="#F7FAFC"/>
+  
+  <!-- Fox Nose -->
+  <ellipse cx="100" cy="48" rx="1.5" ry="1" fill="#2D3748"/>
+  
+  <!-- Fox Mouth -->
+  <path d="M100 49 Q97 51 95 50" stroke="#2D3748" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+  <path d="M100 49 Q103 51 105 50" stroke="#2D3748" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+  
+  <!-- Fox Tail (magical and flowing) -->
+  <path d="M122 65 Q135 45 145 60 Q155 75 140 85 Q130 90 125 75" fill="url(#tailGradient)"/>
+  <ellipse cx="140" cy="82" rx="6" ry="4" fill="#FFF5F5"/>
+  
+  <!-- Configuration Injection Symbol -->
+  <circle cx="85" cy="65" r="8" fill="#48BB78" opacity="0.2"/>
+  <path d="M80 65 L85 60 L90 65 L85 70 Z" fill="#48BB78"/>
+  <text x="85" y="67" text-anchor="middle" fill="#F7FAFC" font-family="monospace" font-size="6" font-weight="bold">!</text>
+  
+  <!-- Fox Paws -->
+  <ellipse cx="85" cy="83" rx="4" ry="6" fill="url(#foxGradient)"/>
+  <ellipse cx="115" cy="83" rx="4" ry="6" fill="url(#foxGradient)"/>
+  
+  <!-- Project Name with Magical Glow -->
+  <text x="100" y="110" text-anchor="middle" fill="#C53030" font-family="sans-serif" font-weight="bold" font-size="14" filter="url(#glow)">injinja</text>
+</svg>
