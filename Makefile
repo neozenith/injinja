@@ -45,7 +45,8 @@ build: .venv/deps check docs
 	uv build --wheel
 
 publish-test: build docs
-	uv publish --repository testpypi dist/*
+	# export UV_PUBLISH_TOKEN=YOUR_TEST_PYPI_API_TOKEN_HERE
+	uv publish --repository testpypi
 
 install-from-test:
 	uv run -m pip install --index-url https://test.pypi.org/simple/ --no-deps injinja-neozenith
