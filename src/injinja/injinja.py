@@ -7,7 +7,8 @@
 #   "deepmerge",
 #   "types-PyYAML",
 #   "types-jinja2",
-#   "jsonschema"
+#   "jsonschema",
+#   "pydantic"
 # ]
 # ///
 # https://docs.astral.sh/uv/guides/scripts/#creating-a-python-script
@@ -37,6 +38,7 @@ import yaml
 from deepmerge import always_merger
 from jinja2.filters import FILTERS
 from jinja2.tests import TESTS
+from pydantic import BaseModel, ValidationError
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +99,7 @@ CLI_CONFIG: dict[str, Any] = {
     "schema": {  # Schema validation file
         "required": False,
         "default": None,
-        "help": "JSON Schema file to validate the final merged configuration against.",
+        "help": "Schema file to validate the final merged configuration. Supports JSON Schema files (.json, .yml, .yaml, .toml) or Pydantic models (schema_models.py::MyModel).",
     },
 }
 
@@ -388,7 +390,72 @@ def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
 ########################################################################################
 
 
-def validate_config_with_schema(config: dict[str, Any], schema_file: str) -> None:
+def validate_config_with_pydantic(config: dict[str, Any], schema_spec: str) -> None:
+    """Validate the final merged configuration against a Pydantic model.
+    
+    Args:
+        config: The final merged configuration dictionary
+        schema_spec: Pydantic model specification in format "module.py::ModelClass"
+        
+    Raises:
+        SystemExit: If validation fails with detailed error message
+    """
+    try:
+        # Parse the module and class specification
+        if "::" not in schema_spec:
+            print(f"❌ Pydantic validation failed: Invalid format '{schema_spec}'. Expected format: 'module.py::ModelClass'", file=sys.stderr)
+            sys.exit(1)
+            
+        module_path, class_name = schema_spec.split("::", 1)
+        module_file = pathlib.Path(module_path)
+        
+        if not module_file.exists():
+            print(f"❌ Pydantic validation failed: Module file '{module_path}' not found.", file=sys.stderr)
+            sys.exit(1)
+            
+        # Import the module dynamically
+        spec = importlib.util.spec_from_file_location("schema_module", module_file)
+        if spec is None or spec.loader is None:
+            print(f"❌ Pydantic validation failed: Could not load module '{module_path}'", file=sys.stderr)
+            sys.exit(1)
+            
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        
+        # Get the model class
+        if not hasattr(module, class_name):
+            available_classes = [name for name in dir(module) if not name.startswith('_') and isinstance(getattr(module, name), type)]
+            print(f"❌ Pydantic validation failed: Class '{class_name}' not found in '{module_path}'", file=sys.stderr)
+            print(f"   Available classes: {', '.join(available_classes)}", file=sys.stderr)
+            sys.exit(1)
+            
+        model_class = getattr(module, class_name)
+        
+        # Verify it's a Pydantic model
+        if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
+            print(f"❌ Pydantic validation failed: '{class_name}' is not a Pydantic BaseModel", file=sys.stderr)
+            sys.exit(1)
+            
+        # Validate the configuration
+        model_class.model_validate(config)
+        print(f"✅ Configuration successfully validated against Pydantic model '{schema_spec}'")
+        
+    except ValidationError as e:
+        print(f"❌ Pydantic validation failed:", file=sys.stderr)
+        for error in e.errors():
+            location = " -> ".join(str(loc) for loc in error["loc"]) if error["loc"] else "root"
+            print(f"   Error at path: {location}", file=sys.stderr)
+            print(f"   Message: {error['msg']}", file=sys.stderr)
+            if "input" in error:
+                print(f"   Input value: {error['input']}", file=sys.stderr)
+        print(f"\n   Model: {schema_spec}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Pydantic validation failed: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def validate_config_with_jsonschema(config: dict[str, Any], schema_file: str) -> None:
     """Validate the final merged configuration against a JSON Schema.
     
     Args:
@@ -438,6 +505,26 @@ def validate_config_with_schema(config: dict[str, Any], schema_file: str) -> Non
     except Exception as e:
         print(f"❌ Schema validation failed: {e}", file=sys.stderr)
         sys.exit(1)
+
+
+def validate_config_with_schema(config: dict[str, Any], schema: str) -> None:
+    """Validate the final merged configuration against a schema.
+    
+    Determines whether to use JSON Schema or Pydantic validation based on the schema format.
+    
+    Args:
+        config: The final merged configuration dictionary
+        schema: Either a path to a JSON Schema file or a Pydantic model spec (module.py::Model)
+        
+    Raises:
+        SystemExit: If validation fails with detailed error message
+    """
+    # Check if this is a Pydantic model specification (contains "::")
+    if "::" in schema:
+        validate_config_with_pydantic(config, schema)
+    else:
+        # Assume it's a JSON Schema file
+        validate_config_with_jsonschema(config, schema)
 
 
 ########################################################################################
