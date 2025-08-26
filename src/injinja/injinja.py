@@ -6,7 +6,8 @@
 #   "PyYAML",
 #   "deepmerge",
 #   "types-PyYAML",
-#   "types-jinja2"
+#   "types-jinja2",
+#   "jsonschema"
 # ]
 # ///
 # https://docs.astral.sh/uv/guides/scripts/#creating-a-python-script
@@ -31,6 +32,7 @@ from typing import Any
 
 # Third Party
 import jinja2
+import jsonschema
 import yaml
 from deepmerge import always_merger
 from jinja2.filters import FILTERS
@@ -91,6 +93,11 @@ CLI_CONFIG: dict[str, Any] = {
         "default": None,
         "choices": ["json", "yml", "yaml", "toml"],
         "help": "Format of the configuration data piped via stdin (json, yaml, toml). If set, injinja will attempt to read from stdin. eg cat config.json | python3 injinja.py --stdin-format json",
+    },
+    "schema": {  # Schema validation file
+        "required": False,
+        "default": None,
+        "help": "JSON Schema file to validate the final merged configuration against.",
     },
 }
 
@@ -377,6 +384,63 @@ def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 ########################################################################################
+# Schema Validation
+########################################################################################
+
+
+def validate_config_with_schema(config: dict[str, Any], schema_file: str) -> None:
+    """Validate the final merged configuration against a JSON Schema.
+    
+    Args:
+        config: The final merged configuration dictionary
+        schema_file: Path to the JSON Schema file
+        
+    Raises:
+        SystemExit: If validation fails with detailed error message
+    """
+    try:
+        # Load the schema file
+        schema_path = pathlib.Path(schema_file)
+        if not schema_path.exists():
+            print(f"❌ Schema validation failed: Schema file '{schema_file}' not found.", file=sys.stderr)
+            sys.exit(1)
+            
+        # Parse schema file (support JSON, YAML, TOML)
+        if schema_file.lower().endswith('.json'):
+            schema = json.loads(schema_path.read_text())
+        elif any(schema_file.lower().endswith(ext) for ext in ['.yml', '.yaml']):
+            schema = yaml.safe_load(schema_path.read_text())
+        elif schema_file.lower().endswith('.toml'):
+            schema = tomllib.loads(schema_path.read_text())
+        else:
+            print(f"❌ Schema validation failed: Unsupported schema file format '{schema_file}'. Supported: .json, .yml, .yaml, .toml", file=sys.stderr)
+            sys.exit(1)
+            
+        # Validate the configuration
+        jsonschema.validate(instance=config, schema=schema)
+        print(f"✅ Configuration successfully validated against schema '{schema_file}'")
+        
+    except jsonschema.ValidationError as e:
+        print(f"❌ Schema validation failed:", file=sys.stderr)
+        print(f"   Error at path: {' -> '.join(str(p) for p in e.absolute_path) if e.absolute_path else 'root'}", file=sys.stderr)
+        print(f"   Message: {e.message}", file=sys.stderr)
+        if e.validator_value:
+            print(f"   Expected: {e.validator_value}", file=sys.stderr)
+        if hasattr(e, 'instance') and e.instance is not None:
+            print(f"   Actual value: {e.instance}", file=sys.stderr)
+        print(f"\n   Full validation context:", file=sys.stderr)
+        print(f"   Schema rule: {e.validator} = {e.validator_value}", file=sys.stderr)
+        sys.exit(1)
+    except jsonschema.SchemaError as e:
+        print(f"❌ Schema validation failed: Invalid schema file", file=sys.stderr)
+        print(f"   Schema error: {e.message}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Schema validation failed: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+########################################################################################
 # Main
 ########################################################################################
 def merge(
@@ -388,6 +452,7 @@ def merge(
     prefix: list[str] | None = None,
     functions: list[str] | None = None,
     stdin_format: str | None = None,  # Added stdin_format parameter
+    schema: str | None = None,  # Added schema parameter
 ) -> tuple[str, str | None]:
     """Merge configuration files and Jinja2 template to produce a final configuration file.
 
@@ -454,6 +519,10 @@ def merge(
     final_conf = reduce_confs(confs)
     log.debug(f"# reduced confs: {json.dumps(final_conf, indent=2)}")
 
+    # Validate final configuration against schema if provided
+    if schema:
+        validate_config_with_schema(final_conf, schema)
+
     merged_template = merge_template(template, final_conf) if template else ""
 
     log.debug(f"# merged_template: {merged_template=}")
@@ -494,6 +563,7 @@ def main(_args: list[str] | None = None) -> None:
         prefix=args["prefix"],
         functions=args["functions"],
         stdin_format=args["stdin_format"],
+        schema=args["schema"],
     )
 
 

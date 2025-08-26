@@ -1,0 +1,17 @@
+# Generated configuration for {{ app.name }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ app.name }}-config
+  namespace: {{ app.environment }}
+data:
+  APP_NAME: "{{ app.name }}"
+  APP_VERSION: "{{ app.version }}"
+  ENVIRONMENT: "{{ app.environment }}"
+  DATABASE_URL: "postgres://user:pass@{{ database.host }}:{{ database.port }}/{{ database.name }}"
+  {% if features %}
+  # Feature flags
+  {% for feature, enabled in features.items() %}
+  {{ feature.upper() }}_ENABLED: "{{ enabled | lower }}"
+  {% endfor %}
+  {% endif %}
