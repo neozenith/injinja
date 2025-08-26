@@ -131,7 +131,7 @@ options:
 
 #### Advanced - Collections of config files
 
-![Collections of Configs](https://github.com/neozenith/injinja/blob/main/diagrams/collection_of_configs.png?raw=true)
+![Collections of Configs](https://github.com/neozenith/injinja/blob/main/diagrams/collections_of_configs.png?raw=true)
 
 - Firstly the `--env` flags are collected and turned into a `dict`
 - Next the `--config/-c` flags are collected
