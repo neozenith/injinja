@@ -48,7 +48,8 @@ dependencies = [
     "PyYAML",
     "deepmerge",
     "types-PyYAML",
-    "types-jinja2"
+    "types-jinja2",
+    "jsonschema"
 ]
 
 [project.urls]
