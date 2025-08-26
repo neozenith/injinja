@@ -58,7 +58,7 @@ This setup allows for configuration driven code based akin to Kubernetes, dbt et
 
 Oh yeah, and then apply this ultra flexible config to your target jinja template output file.
 
-![Overview Diagram](diagrams/overview.png)
+![Overview Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/overview.png?raw=true)
 
 1. Literally **ANY** config schema in a file format YML, JSON or TOML can be treated as a _Jinja2 Template itself_.
    - This makes for **VERY** dynamic config.
@@ -127,11 +127,11 @@ options:
 
 ### Architecture
 
-![Architecture Diagram](diagrams/architecture.png)
+![Architecture Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/architecture.png?raw=true)
 
 #### Advanced - Collections of config files
 
-![Collections of Configs](diagrams/collections_of_configs.png)
+![Collections of Configs](https://github.com/neozenith/injinja/blob/main/diagrams/collections_of_configs.png?raw=true)
 
 - Firstly the `--env` flags are collected and turned into a `dict`
 - Next the `--config/-c` flags are collected
@@ -143,7 +143,7 @@ options:
 
 #### Testing
 
-![Testing Diagram](diagrams/testing.png)
+![Testing Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/testing.png?raw=true)
 
 For the sake of some testing, adding the flag for a fixed text output allows the use of `difflib` to generate a text diff for sanity checking output from an expectation.
 
