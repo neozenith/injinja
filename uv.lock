@@ -225,7 +225,7 @@ wheels = [
 
 [[package]]
 name = "injinja"
-version = "1.0.0rc2"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "deepmerge" },
