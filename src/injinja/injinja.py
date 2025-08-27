@@ -553,7 +553,7 @@ def validate_config_with_jsonschema(config: dict[str, Any], schema_file: str) ->
             error_details.append(f"  Expected: {e.validator_value}")
         if hasattr(e, 'instance') and e.instance is not None:
             error_details.append(f"  Actual value: {e.instance}")
-        error_details.append(f"  Full validation context:")
+        error_details.append("  Full validation context:")
         error_details.append(f"  Schema rule: {e.validator} = {e.validator_value}")
         error_msg = "\n".join(error_details)
         log.error(error_msg)
