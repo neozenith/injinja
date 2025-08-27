@@ -54,7 +54,7 @@ jobs:
           
           # Optional: Add custom instructions for Claude to customize its behavior for your project
           custom_instructions: |
-            Follow our coding standards under @.claude/misc/CODING_PRINCIPLES.md
+            Follow our coding standards under .claude/misc/CODING_PRINCIPLES.md
             Ensure all new code has tests
             Ensure `make format` is run.
             Ensure `make check` is passing.
