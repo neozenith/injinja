@@ -104,6 +104,7 @@ CLI_CONFIG: dict[str, Any] = {
     "schema": {  # Schema validation file
         "required": False,
         "default": None,
+        "short_flag": None,  # No short flag to avoid conflict with -s (stdin-format)
         "help": "Schema file to validate the final merged configuration. JSON Schema files (.json) or Pydantic models (schema_models.py::MyModel).",
     },
 }
@@ -137,18 +138,38 @@ def __argparse_factory(config: dict[str, Any]) -> argparse.ArgumentParser:
     for flag, flag_kwargs in config.items():
         # Automatically handle long and short case for flags
         lowered_flag = flag.lower()
-        short_flag = f"-{lowered_flag[0]}"
         long_flag = f"--{lowered_flag}"
+        
+        # Handle custom short flags or generate default
+        if isinstance(flag_kwargs, dict) and "short_flag" in flag_kwargs:
+            custom_short_flag = flag_kwargs.pop("short_flag")  # Remove from kwargs
+            if custom_short_flag:  # If not None/empty, use custom short flag
+                short_flag = custom_short_flag
+                use_short_flag = True
+            else:  # If None/empty, don't use a short flag
+                use_short_flag = False
+        else:
+            short_flag = f"-{lowered_flag[0]}"
+            use_short_flag = True
 
         # If the value of the config dict is a dictionary then unpack it like standard kwargs for add_argument
         # Otherwise assume the value is a simple default value like a string.
         if isinstance(flag_kwargs, dict):
-            parser.add_argument(short_flag, long_flag, **flag_kwargs)
+            if use_short_flag:
+                parser.add_argument(short_flag, long_flag, **flag_kwargs)
+            else:
+                parser.add_argument(long_flag, **flag_kwargs)
         elif isinstance(flag_kwargs, bool):
             store_type = "store_true" if flag_kwargs else "store_false"
-            parser.add_argument(short_flag, long_flag, action=store_type)
+            if use_short_flag:
+                parser.add_argument(short_flag, long_flag, action=store_type)
+            else:
+                parser.add_argument(long_flag, action=store_type)
         else:
-            parser.add_argument(short_flag, long_flag, default=flag_kwargs)
+            if use_short_flag:
+                parser.add_argument(short_flag, long_flag, default=flag_kwargs)
+            else:
+                parser.add_argument(long_flag, default=flag_kwargs)
     return parser
 
 
@@ -513,7 +534,7 @@ def _load_json_schema(schema_file: str) -> dict[str, Any]:
     # Parse schema file (support JSON only for JSON Schema spec compliance)
     try:
         if schema_file.lower().endswith('.json'):
-            return cast(dict[str, Any], json.loads(schema_path.read_text()))
+            return cast("dict[str, Any]", json.loads(schema_path.read_text()))
         else:
             error_msg = f"Schema validation failed: JSON Schema must be a .json file, got: {schema_file}"
             log.error(error_msg)

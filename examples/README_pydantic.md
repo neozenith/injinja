@@ -2,14 +2,14 @@
 
 This example demonstrates using injinja with Pydantic models for schema validation. Pydantic provides type safety, data validation, and serialization in a Pythonic way.
 
-## Files in this example:
+## Files in this example
 
 - `schema_models.py` - Pydantic model definitions with various validation rules
 - `config_valid.yaml` - A configuration file that passes validation  
 - `config_pydantic_invalid.yaml` - A configuration file that fails validation
 - `template.yml` - A Jinja2 template to render the final output
 
-## Available Pydantic Models:
+## Available Pydantic Models
 
 ### ConfigModel (Recommended)
 - Basic validation with required fields
@@ -25,9 +25,10 @@ This example demonstrates using injinja with Pydantic models for schema validati
 - Forbids localhost database hosts in production
 - Forbids pre-release versions in production
 
-## Usage Examples:
+## Usage Examples
 
 ### Basic Pydantic Validation
+
 ```bash
 # This will succeed - configuration passes validation
 injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_models.py::ConfigModel
@@ -37,20 +38,22 @@ injinja -e env_name=production -e db_host=prod-db.example.com -c examples/config
 ```
 
 ### Strict Validation (No Extra Fields)
+
 ```bash
 # This will fail if config contains fields not in the model
 injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_models.py::StrictConfigModel
 ```
 
 ### Production-Specific Validation
+
 ```bash
 # This will fail with production-specific validation errors
 injinja -c examples/config_pydantic_invalid.yaml -t examples/template.yml --schema examples/schema_models.py::ProductionConfigModel
 ```
 
-## Expected Error Output for Invalid Config:
+## Expected Error Output for Invalid Config
 
-```
+```text
 ❌ Pydantic validation failed:
    Error at path: features -> feature_b
    Message: Feature 'feature_b' must be boolean, got str
@@ -65,7 +68,7 @@ injinja -c examples/config_pydantic_invalid.yaml -t examples/template.yml --sche
    Model: examples/schema_models.py::ProductionConfigModel
 ```
 
-## Advantages of Pydantic vs JSON Schema:
+## Advantages of Pydantic vs JSON Schema
 
 ### Type Safety
 - Python native types with IDE support
@@ -88,7 +91,7 @@ injinja -c examples/config_pydantic_invalid.yaml -t examples/template.yml --sche
 - Field aliases and custom serialization
 - Data conversion and normalization
 
-## Best Practices:
+## Best Practices
 
 1. **Start with basic models** and add validation as needed
 2. **Use Enums** for constrained string values (like environments)
