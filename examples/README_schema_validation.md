@@ -28,14 +28,14 @@ This ensures that your configuration is valid before any templating begins, catc
 
 ## Choosing an Approach
 
-### Use JSON Schema When:
+### Use JSON Schema When
 - You want language-agnostic validation
 - Working with external teams/tools that need schema docs
 - Need complex pattern matching or conditional validation
 - Prefer declarative schema definition
 - Want maximum portability
 
-### Use Pydantic When:
+### Use Pydantic When
 - Working in a Python-centric environment
 - Want type safety and IDE support
 - Need custom validation logic

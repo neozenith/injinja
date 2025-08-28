@@ -2,16 +2,17 @@
 
 This example demonstrates using injinja with JSON Schema validation to ensure your final merged configuration meets specific requirements.
 
-## Files in this example:
+## Files in this example
 
 - `schema_example.json` - A JSON Schema defining the structure and validation rules
 - `config_valid.yaml` - A configuration file that passes schema validation  
 - `config_invalid.yaml` - A configuration file that fails schema validation
 - `template.yml` - A Jinja2 template to render the final output
 
-## Usage Examples:
+## Usage Examples
 
 ### Valid Configuration
+
 ```bash
 # This will succeed - configuration passes schema validation
 injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_example.json
@@ -21,12 +22,13 @@ injinja -e env_name=production -e db_host=prod-db.example.com -c examples/config
 ```
 
 ### Invalid Configuration  
+
 ```bash
 # This will fail with detailed validation errors
 injinja -c examples/config_invalid.yaml -t examples/template.yml --schema examples/schema_example.json
 ```
 
-## Expected Output for Valid Config:
+## Expected Output for Valid Config
 
 ```yaml
 # Generated configuration for my-awesome-app
@@ -45,9 +47,9 @@ data:
   FEATURE_B_ENABLED: "false"
 ```
 
-## Expected Error Output for Invalid Config:
+## Expected Error Output for Invalid Config
 
-```
+```text
 ❌ Schema validation failed:
    Error at path: app -> version
    Message: '1.2' does not match '^\\d+\\.\\d+\\.\\d+$'
@@ -58,7 +60,7 @@ data:
    Schema rule: pattern = ^\\d+\\.\\d+\\.\\d+$
 ```
 
-## Schema Features:
+## Schema Features
 
 The example schema validates:
 - **Required fields**: `app.name`, `app.version`, `app.environment`, `database.host`, `database.port`, `database.name`
