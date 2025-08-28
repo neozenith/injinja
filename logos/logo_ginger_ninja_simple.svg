@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simple Ginger Ninja Cat Logo -->
+  <defs>
+    <!-- Ginger orange gradients -->
+    <linearGradient id="gingerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8C42;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FF6B1A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E5541A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Darker ginger for details -->
+    <linearGradient id="darkGinger" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4541A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B8421A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Ninja mask -->
+    <linearGradient id="ninjaMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2C3E50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1A252F;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Cat body (simplified circle) -->
+  <circle cx="60" cy="70" r="35" fill="url(#gingerGrad)" stroke="#E5541A" stroke-width="2"/>
+  
+  <!-- Cat head -->
+  <circle cx="60" cy="40" r="28" fill="url(#gingerGrad)" stroke="#E5541A" stroke-width="2"/>
+  
+  <!-- Cat ears -->
+  <polygon points="40,25 35,10 50,18" fill="url(#gingerGrad)" stroke="#E5541A" stroke-width="1.5"/>
+  <polygon points="80,25 85,10 70,18" fill="url(#gingerGrad)" stroke="#E5541A" stroke-width="1.5"/>
+  
+  <!-- Inner ears -->
+  <polygon points="42,22 38,14 47,19" fill="#FF8C42"/>
+  <polygon points="78,22 82,14 73,19" fill="#FF8C42"/>
+  
+  <!-- Ninja mask -->
+  <ellipse cx="60" cy="42" rx="25" ry="12" fill="url(#ninjaMask)"/>
+  
+  <!-- Cat eyes (bright and alert) -->
+  <ellipse cx="52" cy="38" rx="4" ry="6" fill="#FFE135"/>
+  <ellipse cx="68" cy="38" rx="4" ry="6" fill="#FFE135"/>
+  <ellipse cx="52" cy="38" rx="2" ry="3" fill="#2C3E50"/>
+  <ellipse cx="68" cy="38" rx="2" ry="3" fill="#2C3E50"/>
+  
+  <!-- Cat nose -->
+  <polygon points="60,45 58,48 62,48" fill="#E5541A"/>
+  
+  <!-- Simple whiskers -->
+  <line x1="35" y1="45" x2="45" y2="43" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  <line x1="35" y1="48" x2="45" y2="48" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  <line x1="75" y1="43" x2="85" y2="45" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  <line x1="75" y1="48" x2="85" y2="48" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Jinja template symbols (simplified) -->
+  <text x="60" y="85" text-anchor="middle" font-family="monospace" font-size="12" fill="#FFE135" font-weight="bold">{{ }}</text>
+  
+  <!-- Cat tail (curved) -->
+  <path d="M95 70 Q110 50 100 30" stroke="url(#darkGinger)" stroke-width="8" fill="none" stroke-linecap="round"/>
+  
+  <!-- Simple paws -->
+  <ellipse cx="45" cy="100" rx="8" ry="6" fill="url(#darkGinger)"/>
+  <ellipse cx="75" cy="100" rx="8" ry="6" fill="url(#darkGinger)"/>
+</svg>

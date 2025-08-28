@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Complex Ginger Ninja Cat Logo - Injinja -->
+  <defs>
+    <!-- Ginger orange gradients -->
+    <radialGradient id="gingerRadial" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#FFA94D;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#FF8C42;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#FF6B1A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E5541A;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- Darker ginger for stripes and details -->
+    <linearGradient id="darkGinger" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4541A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B8421A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Ninja mask with metallic look -->
+    <radialGradient id="ninjaMask" cx="50%" cy="30%" r="80%">
+      <stop offset="0%" style="stop-color:#3C4858;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2C3E50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1A252F;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- Golden accent for Jinja elements -->
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFE135;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFC107;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#1A252F" flood-opacity="0.3"/>
+    </filter>
+    
+    <!-- Glow filter for magical elements -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur result="coloredBlur" stdDeviation="3"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background configuration scroll (partially visible) -->
+  <path d="M10 120 L25 110 L25 140 L10 150 Z" fill="#F4F4F4" stroke="#DDD" stroke-width="1" opacity="0.7"/>
+  <line x1="15" y1="118" x2="20" y2="118" stroke="#666" stroke-width="1"/>
+  <line x1="15" y1="122" x2="22" y2="122" stroke="#666" stroke-width="1"/>
+  <line x1="15" y1="126" x2="20" y2="126" stroke="#666" stroke-width="1"/>
+  
+  <!-- Configuration scroll on right -->
+  <path d="M135 120 L150 110 L150 140 L135 150 Z" fill="#F4F4F4" stroke="#DDD" stroke-width="1" opacity="0.7"/>
+  <text x="140" y="124" font-family="monospace" font-size="6" fill="#666">cfg</text>
+  <text x="138" y="132" font-family="monospace" font-size="5" fill="#666">{{val}}</text>
+  
+  <!-- Cat body with ginger stripes -->
+  <ellipse cx="80" cy="95" rx="40" ry="45" fill="url(#gingerRadial)" stroke="#E5541A" stroke-width="2" filter="url(#shadow)"/>
+  
+  <!-- Ginger stripes on body -->
+  <path d="M45 80 Q60 75 75 80 Q90 85 105 80" stroke="url(#darkGinger)" stroke-width="3" fill="none" opacity="0.6"/>
+  <path d="M50 100 Q65 95 80 100 Q95 105 110 100" stroke="url(#darkGinger)" stroke-width="3" fill="none" opacity="0.6"/>
+  <path d="M55 120 Q70 115 85 120 Q100 125 115 120" stroke="url(#darkGinger)" stroke-width="3" fill="none" opacity="0.6"/>
+  
+  <!-- Cat head with detailed features -->
+  <ellipse cx="80" cy="55" rx="32" ry="35" fill="url(#gingerRadial)" stroke="#E5541A" stroke-width="2" filter="url(#shadow)"/>
+  
+  <!-- Ginger stripes on head -->
+  <path d="M55 45 Q70 40 85 45 Q100 50 115 45" stroke="url(#darkGinger)" stroke-width="2" fill="none" opacity="0.6"/>
+  <path d="M52 65 Q67 60 82 65 Q97 70 112 65" stroke="url(#darkGinger)" stroke-width="2" fill="none" opacity="0.6"/>
+  
+  <!-- Cat ears with tufts -->
+  <polygon points="55,30 48,12 65,20" fill="url(#gingerRadial)" stroke="#E5541A" stroke-width="1.5" filter="url(#shadow)"/>
+  <polygon points="105,30 112,12 95,20" fill="url(#gingerRadial)" stroke="#E5541A" stroke-width="1.5" filter="url(#shadow)"/>
+  
+  <!-- Inner ears with pink -->
+  <polygon points="57,27 51,17 62,22" fill="#FFB6C1"/>
+  <polygon points="103,27 109,17 98,22" fill="#FFB6C1"/>
+  
+  <!-- Ear tufts -->
+  <line x1="52" y1="18" x2="49" y2="10" stroke="url(#darkGinger)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="54" y1="16" x2="50" y2="8" stroke="url(#darkGinger)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="108" y1="18" x2="111" y2="10" stroke="url(#darkGinger)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="106" y1="16" x2="110" y2="8" stroke="url(#darkGinger)" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Ninja mask with detailed design -->
+  <ellipse cx="80" cy="58" rx="28" ry="15" fill="url(#ninjaMask)" filter="url(#shadow)"/>
+  <path d="M52 58 Q80 50 108 58 Q80 65 52 58" fill="url(#ninjaMask)" opacity="0.8"/>
+  
+  <!-- Ninja headband with knot -->
+  <rect x="52" y="42" width="56" height="6" fill="url(#ninjaMask)" rx="3"/>
+  <ellipse cx="108" cy="45" rx="4" ry="3" fill="url(#ninjaMask)"/>
+  <path d="M112 45 L118 42 L118 48 Z" fill="url(#ninjaMask)"/>
+  <path d="M112 45 L116 40 L120 46 Z" fill="url(#ninjaMask)"/>
+  
+  <!-- Cat eyes with intense gaze -->
+  <ellipse cx="70" cy="52" rx="5" ry="8" fill="#FFE135" filter="url(#glow)"/>
+  <ellipse cx="90" cy="52" rx="5" ry="8" fill="#FFE135" filter="url(#glow)"/>
+  <ellipse cx="70" cy="52" rx="3" ry="5" fill="#2C3E50"/>
+  <ellipse cx="90" cy="52" rx="3" ry="5" fill="#2C3E50"/>
+  <ellipse cx="71" cy="50" rx="1" ry="2" fill="#FFE135"/>
+  <ellipse cx="91" cy="50" rx="1" ry="2" fill="#FFE135"/>
+  
+  <!-- Cat nose with detail -->
+  <polygon points="80,65 77,68 83,68" fill="#E5541A"/>
+  <line x1="80" y1="68" x2="80" y2="72" stroke="#E5541A" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Detailed whiskers -->
+  <line x1="45" y1="58" x2="58" y2="56" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  <line x1="42" y1="62" x2="58" y2="62" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  <line x1="45" y1="66" x2="58" y2="68" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  <line x1="102" y1="56" x2="115" y2="58" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  <line x1="102" y1="62" x2="118" y2="62" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  <line x1="102" y1="68" x2="115" y2="66" stroke="#2C3E50" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Complex Jinja template symbols -->
+  <g filter="url(#glow)">
+    <text x="80" y="110" text-anchor="middle" font-family="monospace" font-size="14" fill="url(#goldAccent)" font-weight="bold">{{</text>
+    <text x="80" y="125" text-anchor="middle" font-family="monospace" font-size="10" fill="url(#goldAccent)">config</text>
+    <text x="80" y="140" text-anchor="middle" font-family="monospace" font-size="14" fill="url(#goldAccent)" font-weight="bold">}}</text>
+  </g>
+  
+  <!-- Ninja throwing stars (shuriken) -->
+  <g transform="translate(25, 40) rotate(15)">
+    <polygon points="0,-6 2,-2 6,0 2,2 0,6 -2,2 -6,0 -2,-2" fill="#2C3E50" stroke="#1A252F" stroke-width="1"/>
+    <circle cx="0" cy="0" r="1.5" fill="#3C4858"/>
+  </g>
+  
+  <g transform="translate(135, 60) rotate(-20)">
+    <polygon points="0,-5 1.5,-1.5 5,0 1.5,1.5 0,5 -1.5,1.5 -5,0 -1.5,-1.5" fill="#2C3E50" stroke="#1A252F" stroke-width="1"/>
+    <circle cx="0" cy="0" r="1" fill="#3C4858"/>
+  </g>
+  
+  <!-- Cat tail with detailed curve and stripes -->
+  <path d="M120 95 Q140 75 135 50 Q130 30 125 25" stroke="url(#gingerRadial)" stroke-width="12" fill="none" stroke-linecap="round" filter="url(#shadow)"/>
+  <path d="M118 95 Q138 75 133 50 Q128 30 123 25" stroke="url(#darkGinger)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6"/>
+  
+  <!-- Cat paws with claws -->
+  <ellipse cx="60" cy="135" rx="10" ry="8" fill="url(#darkGinger)" filter="url(#shadow)"/>
+  <ellipse cx="100" cy="135" rx="10" ry="8" fill="url(#darkGinger)" filter="url(#shadow)"/>
+  
+  <!-- Toe beans -->
+  <ellipse cx="58" cy="132" rx="2" ry="1.5" fill="#FFB6C1"/>
+  <ellipse cx="62" cy="132" rx="2" ry="1.5" fill="#FFB6C1"/>
+  <ellipse cx="60" cy="138" rx="3" ry="2" fill="#FFB6C1"/>
+  <ellipse cx="98" cy="132" rx="2" ry="1.5" fill="#FFB6C1"/>
+  <ellipse cx="102" cy="132" rx="2" ry="1.5" fill="#FFB6C1"/>
+  <ellipse cx="100" cy="138" rx="3" ry="2" fill="#FFB6C1"/>
+  
+  <!-- Small claws -->
+  <line x1="56" y1="130" x2="54" y2="127" stroke="#1A252F" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="64" y1="130" x2="66" y2="127" stroke="#1A252F" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="96" y1="130" x2="94" y2="127" stroke="#1A252F" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="104" y1="130" x2="106" y2="127" stroke="#1A252F" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Magical sparkles around the cat -->
+  <g filter="url(#glow)">
+    <polygon points="30,25 31,27 33,26 31,28 30,30 29,28 27,26 29,27" fill="url(#goldAccent)" opacity="0.8"/>
+    <polygon points="130,35 131,37 133,36 131,38 130,40 129,38 127,36 129,37" fill="url(#goldAccent)" opacity="0.8"/>
+    <polygon points="35,85 36,87 38,86 36,88 35,90 34,88 32,86 34,87" fill="url(#goldAccent)" opacity="0.6"/>
+    <polygon points="125,95 126,97 128,96 126,98 125,100 124,98 122,96 124,97" fill="url(#goldAccent)" opacity="0.6"/>
+  </g>
+</svg>
