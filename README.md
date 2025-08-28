@@ -8,7 +8,6 @@
 
 <p align="center">Injinja: <b>Inj</b>ectable <b>Jinja</b> Configuration tool.</p>
 <p align="center"><i>Insanely configurable... config system.</i></p>
-  
 
 <!-- TODO: Animated GIF demoing features. 800px wide -->
 
@@ -25,6 +24,7 @@
 <!--TOC-->
 
 - [injinja 🥷](#injinja-)
+  - [Features](#features)
   - [Quickstart](#quickstart)
   - [Overview](#overview)
   - [User Guide](#user-guide)
