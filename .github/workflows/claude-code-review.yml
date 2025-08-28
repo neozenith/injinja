@@ -26,10 +26,17 @@ jobs:
       id-token: write
     
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # Setup claude with all the tools the CI environment has.
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync
 
       - name: Run Claude Code Review
         id: claude-review
@@ -42,14 +49,23 @@ jobs:
 
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
+            Please review the .claude/misc/CODING_PRINCIPLES.md with special focus on the "Lens of Pragmatism" section.
+            In particular:
+            The Frugal Startup Founder Perspective:
+            - Time is the most scarce resource
+            - Working code > perfect code
+            - Technical debt is only debt if you have to pay it back
+            - Many startups die with perfect code that never shipped
+            
+            Be constructive and helpful in your feedback.
+            My attention is precious so your output on PRs needs to be concise and to the point.
+
             Please review this pull request and provide feedback on:
             - Code quality and best practices
             - Potential bugs or issues
             - Performance considerations
             - Security concerns
             - Test coverage
-            
-            Be constructive and helpful in your feedback.
 
           # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
           # use_sticky_comment: true
@@ -69,7 +85,7 @@ jobs:
           #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
           
           # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
+          allowed_tools: "Bash(uv sync:*),Bash(uv run:*),Bash(make format),Bash(make check),Bash(make build),Bash(make docs),Bash(make diag)"
           
           # Optional: Skip review for certain conditions
           # if: |
