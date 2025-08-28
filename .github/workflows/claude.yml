@@ -25,10 +25,17 @@ jobs:
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # Setup claude with all the tools the CI environment has.
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync
 
       - name: Run Claude Code
         id: claude
@@ -43,11 +50,8 @@ jobs:
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4.1)
           # model: "claude-opus-4-1-20250805"
           
-          # Optional: Customize the trigger phrase (default: @claude)
-          # trigger_phrase: "/claude"
-          
           # Optional: Trigger when specific user is assigned to an issue
-          # assignee_trigger: "claude-bot"
+          assignee_trigger: "claude-bot"
           
           # Optional: Allow Claude to run specific commands
           allowed_tools: "Bash(uv sync:*),Bash(uv run:*),Bash(make format),Bash(make check),Bash(make build),Bash(make docs),Bash(make diag)"
@@ -58,6 +62,7 @@ jobs:
             Ensure all new code has tests
             Ensure `make format` is run.
             Ensure `make check` is passing.
+            My attention is precious so your output on PRs needs to be concise and to the point.
           
           # Optional: Custom environment variables for Claude
           # claude_env: |
