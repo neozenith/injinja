@@ -29,7 +29,7 @@ import shlex
 import sys
 import textwrap
 import tomllib
-from typing import Any
+from typing import Any, cast
 
 # Third Party
 import jinja2
@@ -513,7 +513,7 @@ def _load_json_schema(schema_file: str) -> dict[str, Any]:
     # Parse schema file (support JSON only for JSON Schema spec compliance)
     try:
         if schema_file.lower().endswith('.json'):
-            return json.loads(schema_path.read_text())
+            return cast(dict[str, Any], json.loads(schema_path.read_text()))
         else:
             error_msg = f"Schema validation failed: JSON Schema must be a .json file, got: {schema_file}"
             log.error(error_msg)
