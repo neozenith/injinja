@@ -431,6 +431,6 @@ class TestEdgeCases:
 
         glob_path_str = str(relative_tmp_path / "expand_files_list") + "/*.txt"
 
-        result = expand_files_list(glob_path_str)
+        result = sorted(expand_files_list(glob_path_str))
         shutil.rmtree(relative_tmp_path / "expand_files_list")
-        assert result == [str(temp_file_1), str(temp_file_2)]
+        assert result == sorted([str(temp_file_1), str(temp_file_2)])
