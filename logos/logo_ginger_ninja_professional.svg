@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Advanced gradients for realistic fur -->
+    <radialGradient id="mainFurGradient" cx="0.4" cy="0.3" r="0.8">
+      <stop offset="0%" stop-color="#FF9B5A"/>
+      <stop offset="40%" stop-color="#FF7F29"/>
+      <stop offset="80%" stop-color="#E5541A"/>
+      <stop offset="100%" stop-color="#CC4A17"/>
+    </radialGradient>
+    
+    <!-- Darker gradient for stripes and shadows -->
+    <radialGradient id="stripeFurGradient" cx="0.4" cy="0.3" r="0.8">
+      <stop offset="0%" stop-color="#E5541A"/>
+      <stop offset="50%" stop-color="#CC4A17"/>
+      <stop offset="100%" stop-color="#B33E14"/>
+    </radialGradient>
+    
+    <!-- Ninja mask gradient -->
+    <linearGradient id="maskGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2C2C2C"/>
+      <stop offset="50%" stop-color="#1A1A1A"/>
+      <stop offset="100%" stop-color="#0F0F0F"/>
+    </linearGradient>
+    
+    <!-- Eye gradients -->
+    <radialGradient id="eyeGradient" cx="0.3" cy="0.2" r="0.7">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="60%" stop-color="#F0C929"/>
+      <stop offset="100%" stop-color="#E6B800"/>
+    </radialGradient>
+    
+    <!-- Pupil gradient -->
+    <radialGradient id="pupilGradient" cx="0.3" cy="0.2" r="0.8">
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="70%" stop-color="#0A0A0A"/>
+      <stop offset="100%" stop-color="#1A1A1A"/>
+    </radialGradient>
+    
+    <!-- Jinja template glow -->
+    <filter id="jinjaGlow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Soft shadow filter -->
+    <filter id="softShadow">
+      <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Main head shape with realistic proportions -->
+  <ellipse cx="100" cy="105" rx="55" ry="48" fill="url(#mainFurGradient)" filter="url(#softShadow)"/>
+  
+  <!-- Subtle fur texture lines -->
+  <path d="M60 85 Q70 80 80 85 Q90 90 100 85 Q110 90 120 85 Q130 80 140 85" 
+        stroke="url(#stripeFurGradient)" stroke-width="0.8" fill="none" opacity="0.6"/>
+  <path d="M65 105 Q75 100 85 105 Q95 110 105 105 Q115 110 125 105 Q135 100 145 105" 
+        stroke="url(#stripeFurGradient)" stroke-width="0.8" fill="none" opacity="0.4"/>
+  <path d="M70 125 Q80 120 90 125 Q100 130 110 125 Q120 130 130 125" 
+        stroke="url(#stripeFurGradient)" stroke-width="0.8" fill="none" opacity="0.5"/>
+  
+  <!-- Realistic ear shapes -->
+  <ellipse cx="75" cy="70" rx="15" ry="20" fill="url(#mainFurGradient)" transform="rotate(-25 75 70)"/>
+  <ellipse cx="125" cy="70" rx="15" ry="20" fill="url(#mainFurGradient)" transform="rotate(25 125 70)"/>
+  
+  <!-- Inner ear detail -->
+  <ellipse cx="77" cy="72" rx="8" ry="12" fill="url(#stripeFurGradient)" transform="rotate(-25 77 72)" opacity="0.7"/>
+  <ellipse cx="123" cy="72" rx="8" ry="12" fill="url(#stripeFurGradient)" transform="rotate(25 123 72)" opacity="0.7"/>
+  
+  <!-- Ear tufts -->
+  <path d="M70 60 Q68 55 72 58 Q75 52 70 60" fill="url(#stripeFurGradient)"/>
+  <path d="M130 60 Q132 55 128 58 Q125 52 130 60" fill="url(#stripeFurGradient)"/>
+  
+  <!-- Professional ninja mask with realistic shading -->
+  <path d="M45 95 Q45 80 65 75 Q85 70 100 75 Q115 70 135 75 Q155 80 155 95 L155 115 Q155 125 145 130 Q125 135 100 130 Q75 135 55 130 Q45 125 45 115 Z"
+        fill="url(#maskGradient)" filter="url(#softShadow)"/>
+  
+  <!-- Mask fabric texture -->
+  <path d="M50 90 L150 90 M50 95 L150 95 M50 100 L150 100 M50 105 L150 105 M50 110 L150 110 M50 115 L150 115 M50 120 L150 120"
+        stroke="#0A0A0A" stroke-width="0.3" opacity="0.4"/>
+  
+  <!-- Realistic eyes with depth -->
+  <ellipse cx="80" cy="95" rx="12" ry="10" fill="url(#eyeGradient)" filter="url(#softShadow)"/>
+  <ellipse cx="120" cy="95" rx="12" ry="10" fill="url(#eyeGradient)" filter="url(#softShadow)"/>
+  
+  <!-- Eye highlights for life -->
+  <ellipse cx="77" cy="92" rx="3" ry="2.5" fill="#FFF8DC" opacity="0.9"/>
+  <ellipse cx="117" cy="92" rx="3" ry="2.5" fill="#FFF8DC" opacity="0.9"/>
+  
+  <!-- Pupils with realistic depth -->
+  <ellipse cx="80" cy="96" rx="4" ry="5" fill="url(#pupilGradient)"/>
+  <ellipse cx="120" cy="96" rx="4" ry="5" fill="url(#pupilGradient)"/>
+  
+  <!-- Eye reflections -->
+  <ellipse cx="78" cy="94" rx="1.5" ry="1" fill="white" opacity="0.8"/>
+  <ellipse cx="118" cy="94" rx="1.5" ry="1" fill="white" opacity="0.8"/>
+  
+  <!-- Realistic nose -->
+  <path d="M100 110 L95 115 Q100 118 105 115 Z" fill="#FF6B35" filter="url(#softShadow)"/>
+  <ellipse cx="97" cy="113" rx="1" ry="0.5" fill="#E5541A"/>
+  <ellipse cx="103" cy="113" rx="1" ry="0.5" fill="#E5541A"/>
+  
+  <!-- Subtle mouth suggestion -->
+  <path d="M100 118 Q95 122 90 120" stroke="#CC4A17" stroke-width="1.5" fill="none" opacity="0.6"/>
+  <path d="M100 118 Q105 122 110 120" stroke="#CC4A17" stroke-width="1.5" fill="none" opacity="0.6"/>
+  
+  <!-- Whiskers with natural curve -->
+  <path d="M65 110 Q50 108 35 110" stroke="#333" stroke-width="1.2" opacity="0.8"/>
+  <path d="M65 115 Q50 115 35 118" stroke="#333" stroke-width="1.2" opacity="0.8"/>
+  <path d="M65 120 Q50 122 35 125" stroke="#333" stroke-width="1.2" opacity="0.8"/>
+  
+  <path d="M135 110 Q150 108 165 110" stroke="#333" stroke-width="1.2" opacity="0.8"/>
+  <path d="M135 115 Q150 115 165 118" stroke="#333" stroke-width="1.2" opacity="0.8"/>
+  <path d="M135 120 Q150 122 165 125" stroke="#333" stroke-width="1.2" opacity="0.8"/>
+  
+  <!-- Professional Jinja template symbols with glow effect -->
+  <text x="60" y="65" font-family="monospace" font-size="14" font-weight="bold" 
+        fill="#FFE066" filter="url(#jinjaGlow)" opacity="0.9">{{</text>
+  <text x="125" y="65" font-family="monospace" font-size="14" font-weight="bold" 
+        fill="#FFE066" filter="url(#jinjaGlow)" opacity="0.9">}}</text>
+  
+  <!-- Subtle chin/jaw definition -->
+  <path d="M80 140 Q100 145 120 140" stroke="url(#stripeFurGradient)" stroke-width="1" fill="none" opacity="0.3"/>
+  
+  <!-- Professional details: subtle cheek tufts -->
+  <ellipse cx="55" cy="105" rx="4" ry="8" fill="url(#mainFurGradient)" opacity="0.7" transform="rotate(-15 55 105)"/>
+  <ellipse cx="145" cy="105" rx="4" ry="8" fill="url(#mainFurGradient)" opacity="0.7" transform="rotate(15 145 105)"/>
+</svg>
