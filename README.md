@@ -1,8 +1,26 @@
 # injinja 🥷
 
-Injinja: **Inj**ectable **Jinja** Configuration tool.  
+<p align="center">
+    <!-- TODO: Catchy Logo, 450px wide -->
+    <a href="https://github.com/neozenith/injinja/releases"><img src="https://img.shields.io/github/release/neozenith/injinja" alt="Latest Release"></a>
+    <a href="https://github.com/neozenith/injinja/actions/workflows/publish.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/publish.yml/badge.svg" alt="Build Status"></a>
+</p>
 
-_Insanely configurable... config system._
+<p align="center">Injinja: <b>Inj</b>ectable <b>Jinja</b> Configuration tool.</p>
+<p align="center"><i>Insanely configurable... config system.</i></p>
+  
+
+<!-- TODO: Animated GIF demoing features. 800px wide -->
+
+## Features
+
+- **Ultra-simple:** The implementation is a single stand-alone python file. Take a copy of the file or `pip install`. Choice is yours.
+- **Flexible:** You design your configuration schema yourself in any of JSON, YAML or TOML.
+- **Deep Merge:** Finally split those big mega config files into smaller more manageable ones in a folder hierarchy. We recursively merge them like they are the one mega file.
+- **Powerful:** Any of your config files are now empowered with the full programming capabilities of [`Jinja`](https://jinja.palletsprojects.com/en/stable/) templating engine.
+- **Platform Engineering:** Separate your projects into _Extensible Code_ driven by _Flexible Config_ to allow _"Drive By Contributors"_. Edit one YAML in Github Browser to start a PR to spin up new Snowflake Databases or Terraform modules.
+
+----
 
 <!--TOC-->
 
