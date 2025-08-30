@@ -4,11 +4,11 @@
     <!-- TODO: Catchy Logo, 450px wide -->
     <a href="https://github.com/neozenith/injinja/releases"><img src="https://img.shields.io/github/release/neozenith/injinja" alt="Latest Release"></a>
     <a href="https://github.com/neozenith/injinja/actions/workflows/publish.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/publish.yml/badge.svg" alt="Build Status"></a>
+    <img src="https://raw.githubusercontent.com/neozenith/injinja/main/.github/badges/coverage.svg" alt="Coverage">
 </p>
 
 <p align="center">Injinja: <b>Inj</b>ectable <b>Jinja</b> Configuration tool.</p>
 <p align="center"><i>Insanely configurable... config system.</i></p>
-  
 
 <!-- TODO: Animated GIF demoing features. 800px wide -->
 
@@ -25,6 +25,7 @@
 <!--TOC-->
 
 - [injinja 🥷](#injinja-)
+  - [Features](#features)
   - [Quickstart](#quickstart)
   - [Overview](#overview)
   - [User Guide](#user-guide)
