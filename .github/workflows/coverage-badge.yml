@@ -1,0 +1,62 @@
+name: Coverage Badge
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  coverage-badge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run tests and generate coverage
+        run: |
+          make check
+          uv run coverage json
+
+      - name: Generate coverage badge
+        run: |
+          # Extract coverage percentage from coverage.json
+          coverage_pct=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
+          
+          # Determine badge color based on coverage
+          if [ "$coverage_pct" -ge 90 ]; then
+            color="brightgreen"
+          elif [ "$coverage_pct" -ge 80 ]; then
+            color="yellow"  
+          elif [ "$coverage_pct" -ge 70 ]; then
+            color="orange"
+          else
+            color="red"
+          fi
+          
+          # Create badges directory if it doesn't exist
+          mkdir -p .github/badges
+          
+          # Create coverage badge using shields.io
+          curl -o .github/badges/coverage.svg "https://img.shields.io/badge/coverage-${coverage_pct}%25-${color}"
+
+      - name: Commit coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .github/badges/coverage.svg
+          if ! git diff --cached --quiet; then
+            git commit -m "Update coverage badge"
+            git push
+          fi
