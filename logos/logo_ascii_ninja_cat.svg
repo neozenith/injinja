@@ -1,0 +1,72 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Orange gradient for ginger coloring -->
+    <linearGradient id="gingerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8C42;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E5541A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Darker orange for strokes -->
+    <linearGradient id="strokeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D84315;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#BF360C;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- ASCII Art Foundation - using monospace-style blocky shapes -->
+  
+  <!-- Cat ears - triangular ASCII style -->
+  <polygon points="35,25 45,15 55,25" fill="url(#gingerGradient)" stroke="url(#strokeGradient)" stroke-width="2"/>
+  <polygon points="65,25 75,15 85,25" fill="url(#gingerGradient)" stroke="url(#strokeGradient)" stroke-width="2"/>
+  
+  <!-- Inner ear triangles -->
+  <polygon points="39,23 45,18 51,23" fill="#FFB74D"/>
+  <polygon points="69,23 75,18 81,23" fill="#FFB74D"/>
+  
+  <!-- Main head - square/rectangular ASCII block style -->
+  <rect x="30" y="25" width="60" height="50" rx="5" ry="5" 
+        fill="url(#gingerGradient)" stroke="url(#strokeGradient)" stroke-width="2"/>
+  
+  <!-- ASCII-style ninja mask band -->
+  <rect x="25" y="35" width="70" height="15" rx="2" ry="2" 
+        fill="#2C2C2C" stroke="#1A1A1A" stroke-width="1"/>
+  
+  <!-- Eyes - simple ASCII dots/circles -->
+  <circle cx="45" cy="42" r="6" fill="#2C2C2C"/>
+  <circle cx="75" cy="42" r="6" fill="#2C2C2C"/>
+  
+  <!-- Eye highlights - small ASCII-style dots -->
+  <circle cx="47" cy="40" r="2" fill="white"/>
+  <circle cx="77" cy="40" r="2" fill="white"/>
+  
+  <!-- ASCII whiskers - simple straight lines -->
+  <line x1="15" y1="45" x2="25" y2="45" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  <line x1="15" y1="50" x2="25" y2="50" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  <line x1="15" y1="55" x2="25" y2="55" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  
+  <line x1="95" y1="45" x2="105" y2="45" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  <line x1="95" y1="50" x2="105" y2="50" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  <line x1="95" y1="55" x2="105" y2="55" stroke="#D84315" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- THE FEATURE: Curly bracket as cat mouth -->
+  <text x="60" y="68" font-family="monospace" font-size="24" font-weight="bold" 
+        text-anchor="middle" fill="#FFD700" stroke="#FF8F00" stroke-width="0.5">
+    {
+  </text>
+  
+  <!-- ASCII-style nose - simple triangle -->
+  <polygon points="60,55 57,60 63,60" fill="#D84315"/>
+  
+  <!-- Jinja template symbols - ASCII style -->
+  <text x="20" y="95" font-family="monospace" font-size="12" font-weight="bold" 
+        fill="#FFD700" opacity="0.8">{{</text>
+  <text x="90" y="95" font-family="monospace" font-size="12" font-weight="bold" 
+        fill="#FFD700" opacity="0.8">}}</text>
+  
+  <!-- ASCII-style ginger stripes -->
+  <rect x="32" y="30" width="56" height="3" fill="#D84315" opacity="0.6"/>
+  <rect x="32" y="38" width="20" height="2" fill="#D84315" opacity="0.6"/>
+  <rect x="68" y="38" width="20" height="2" fill="#D84315" opacity="0.6"/>
+  <rect x="32" y="65" width="56" height="2" fill="#D84315" opacity="0.6"/>
+  
+</svg>
