@@ -1,0 +1,100 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradients for professional look -->
+    <radialGradient id="trunkGradient" cx="0.3" cy="0.3" r="0.8">
+      <stop offset="0%" stop-color="#8B4513"/>
+      <stop offset="100%" stop-color="#654321"/>
+    </radialGradient>
+    
+    <radialGradient id="leafGradient" cx="0.3" cy="0.3" r="0.8">
+      <stop offset="0%" stop-color="#32CD32"/>
+      <stop offset="100%" stop-color="#228B22"/>
+    </radialGradient>
+    
+    <radialGradient id="configGradient" cx="0.3" cy="0.3" r="0.8">
+      <stop offset="0%" stop-color="#4A9EFF"/>
+      <stop offset="100%" stop-color="#1E7CE8"/>
+    </radialGradient>
+    
+    <linearGradient id="rootGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B42"/>
+      <stop offset="100%" stop-color="#E5541A"/>
+    </radialGradient>
+    
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="1" stdDeviation="1.5" flood-opacity="0.3"/>
+    </filter>
+    
+    <!-- Glow effect -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="55" fill="#F8F9FA" stroke="#E0E0E0" stroke-width="2"/>
+  
+  <!-- Tree trunk (main injinja core) -->
+  <rect x="55" y="70" width="10" height="30" rx="2" fill="url(#trunkGradient)" filter="url(#shadow)"/>
+  
+  <!-- Root system (representing deep merge) -->
+  <path d="M60,100 Q45,105 35,110" fill="none" stroke="url(#rootGradient)" stroke-width="3" opacity="0.8"/>
+  <path d="M60,100 Q75,105 85,110" fill="none" stroke="url(#rootGradient)" stroke-width="3" opacity="0.8"/>
+  <path d="M60,100 Q60,108 60,115" fill="none" stroke="url(#rootGradient)" stroke-width="2" opacity="0.8"/>
+  
+  <!-- Main branches -->
+  <path d="M60,70 Q45,60 35,50" fill="none" stroke="url(#trunkGradient)" stroke-width="4"/>
+  <path d="M60,70 Q75,60 85,50" fill="none" stroke="url(#trunkGradient)" stroke-width="4"/>
+  <path d="M60,70 Q55,55 50,40" fill="none" stroke="url(#trunkGradient)" stroke-width="3"/>
+  <path d="M60,70 Q65,55 70,40" fill="none" stroke="url(#trunkGradient)" stroke-width="3"/>
+  
+  <!-- Secondary branches -->
+  <path d="M35,50 Q30,45 25,40" fill="none" stroke="url(#trunkGradient)" stroke-width="2"/>
+  <path d="M35,50 Q40,43 45,38" fill="none" stroke="url(#trunkGradient)" stroke-width="2"/>
+  <path d="M85,50 Q90,45 95,40" fill="none" stroke="url(#trunkGradient)" stroke-width="2"/>
+  <path d="M85,50 Q80,43 75,38" fill="none" stroke="url(#trunkGradient)" stroke-width="2"/>
+  
+  <!-- Config file "leaves" -->
+  <g filter="url(#shadow)">
+    <!-- YAML files -->
+    <rect x="22" y="35" width="8" height="10" rx="2" fill="url(#configGradient)"/>
+    <text x="24" y="32" font-family="'Courier New', monospace" font-size="6" font-weight="bold" fill="#1E7CE8">yml</text>
+    
+    <rect x="42" y="33" width="8" height="10" rx="2" fill="url(#configGradient)"/>
+    <text x="44" y="30" font-family="'Courier New', monospace" font-size="6" font-weight="bold" fill="#1E7CE8">yml</text>
+    
+    <!-- JSON files -->
+    <rect x="72" y="33" width="8" height="10" rx="2" fill="#32CD32"/>
+    <text x="73" y="30" font-family="'Courier New', monospace" font-size="6" font-weight="bold" fill="#228B22">json</text>
+    
+    <rect x="92" y="35" width="8" height="10" rx="2" fill="#32CD32"/>
+    <text x="93" y="32" font-family="'Courier New', monospace" font-size="6" font-weight="bold" fill="#228B22">json</text>
+    
+    <!-- TOML files -->
+    <rect x="47" y="35" width="8" height="10" rx="2" fill="#FFD700"/>
+    <text x="48" y="32" font-family="'Courier New', monospace" font-size="6" font-weight="bold" fill="#DAA520">toml</text>
+    
+    <rect x="67" y="35" width="8" height="10" rx="2" fill="#FFD700"/>
+    <text x="68" y="32" font-family="'Courier New', monospace" font-size="6" font-weight="bold" fill="#DAA520">toml</text>
+  </g>
+  
+  <!-- Recursive folder structure arrows -->
+  <path d="M15,25 Q25,20 35,25" fill="none" stroke="#666" stroke-width="1.5" stroke-dasharray="2,2"/>
+  <polygon points="33,23 37,25 33,27" fill="#666"/>
+  
+  <path d="M105,25 Q95,20 85,25" fill="none" stroke="#666" stroke-width="1.5" stroke-dasharray="2,2"/>
+  <polygon points="87,23 83,25 87,27" fill="#666"/>
+  
+  <!-- Jinja template symbols -->
+  <text x="35" y="15" font-family="'Courier New', monospace" font-size="12" font-weight="bold" fill="#FF6B42" filter="url(#glow)">{{</text>
+  <text x="70" y="15" font-family="'Courier New', monospace" font-size="12" font-weight="bold" fill="#FF6B42" filter="url(#glow)">}}</text>
+  
+  <!-- Merge symbol at base -->
+  <circle cx="60" cy="110" r="6" fill="url(#rootGradient)" filter="url(#shadow)"/>
+  <text x="57" y="114" font-family="'Arial', sans-serif" font-size="8" font-weight="bold" fill="white">∪</text>
+</svg>
