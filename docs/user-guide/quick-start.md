@@ -118,6 +118,7 @@ injinja -e DATABASE_URL=postgres://... -e DEBUG=true
 ### Environment File
 
 Create `.env`:
+
 ```bash
 DATABASE_URL=postgres://localhost/myapp
 DEBUG=true
@@ -164,6 +165,7 @@ injinja -c config.yml -o config-yaml
 Here's a practical example for generating database migration scripts:
 
 **Environment:**
+
 ```bash
 export ENV=production
 export DB_HOST=prod-db.example.com
@@ -171,6 +173,7 @@ export SCHEMA_VERSION=v2.1
 ```
 
 **Config (`db-config.yml`):**
+
 ```yaml
 database:
   host: "{{ ENV == 'production' and DB_HOST or 'localhost' }}"
@@ -191,6 +194,7 @@ database:
 ```
 
 **Template (`migration.sql.j2`):**
+
 ```sql
 -- Migration for {{ database.schema_version }}
 -- Target: {{ database.host }}
@@ -205,6 +209,7 @@ CREATE TABLE IF NOT EXISTS {{ table_name }} (
 ```
 
 **Command:**
+
 ```bash
 injinja --prefix ENV,DB_HOST,SCHEMA_VERSION -c db-config.yml -t migration.sql.j2 -o migration_v2.1.sql
 ```

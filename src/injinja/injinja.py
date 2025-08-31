@@ -34,18 +34,32 @@ from typing import Any, cast
 # Third Party
 import jinja2
 import jsonschema
+import pydantic
 import yaml
 from deepmerge import always_merger
 from jinja2.filters import FILTERS
 from jinja2.tests import TESTS
-from pydantic import BaseModel, ValidationError
 
 log = logging.getLogger(__name__)
 
 
-class ConfigValidationError(Exception):
-    """Custom exception for configuration validation errors."""
+class PydanticConfigSchemaLoadingError(Exception):
+    """Custom exception for Pydantic schema loading errors."""
+
     pass
+
+
+class JSONSchemaLoadingError(Exception):
+    """Custom exception for JSON schema loading errors."""
+
+    pass
+
+
+class ConfigSchemaValidationError(Exception):
+    """Custom exception for configuration validation errors."""
+
+    pass
+
 
 DEBUG_MODE = False
 TRACEBACK_SUPPRESSIONS = [jinja2]
@@ -105,7 +119,7 @@ CLI_CONFIG: dict[str, Any] = {
         "required": False,
         "default": None,
         "short_flag": None,  # No short flag to avoid conflict with -s (stdin-format)
-        "help": "Schema file to validate the final merged configuration. JSON Schema files (.json) or Pydantic models (schema_models.py::MyModel).",
+        "help": "Schema file to validate the final merged configuration. JSON Schema files (mostly .json but also supported .yml, .toml) or Pydantic models (schema_models.py::MyModel).",
     },
 }
 
@@ -139,7 +153,7 @@ def __argparse_factory(config: dict[str, Any]) -> argparse.ArgumentParser:
         # Automatically handle long and short case for flags
         lowered_flag = flag.lower()
         long_flag = f"--{lowered_flag}"
-        
+
         # Handle custom short flags or generate default
         if isinstance(flag_kwargs, dict) and "short_flag" in flag_kwargs:
             custom_short_flag = flag_kwargs.pop("short_flag")  # Remove from kwargs
@@ -416,83 +430,77 @@ def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
 ########################################################################################
 
 
-def _load_pydantic_model(schema_spec: str) -> type[BaseModel]:
+def _load_pydantic_model(schema_spec: str) -> type[pydantic.BaseModel]:
     """Load a Pydantic model from a module specification.
-    
+
     Args:
         schema_spec: Pydantic model specification in format "module.py::ModelClass"
-        
+
     Returns:
         The Pydantic model class
-        
+
     Raises:
-        ConfigValidationError: If the model cannot be loaded
+        PydanticConfigSchemaLoadingError: If the model cannot be loaded
     """
     # Parse the module and class specification
-    if "::" not in schema_spec:
-        error_msg = f"Pydantic validation failed: Invalid format '{schema_spec}'. Expected format: 'module.py::ModelClass'"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg)
-        
+    if ".py" not in schema_spec or "::" not in schema_spec:
+        raise PydanticConfigSchemaLoadingError(
+            f"Pydantic validation failed: Invalid format '{schema_spec}'. Expected format: 'module.py::ModelClass'"
+        )
+
     module_path, class_name = schema_spec.split("::", 1)
     module_file = pathlib.Path(module_path)
-    
+
     if not module_file.exists():
-        error_msg = f"Pydantic validation failed: Module file '{module_path}' not found."
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg)
-        
+        raise PydanticConfigSchemaLoadingError(f"Pydantic validation failed: Module file '{module_path}' not found.")
+
     # Import the module dynamically
-    try:
-        spec = importlib.util.spec_from_file_location("schema_module", module_file)
-        if spec is None or spec.loader is None:
-            error_msg = f"Pydantic validation failed: Could not load module '{module_path}'"
-            log.error(error_msg)
-            raise ConfigValidationError(error_msg)
-            
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-    except Exception as e:
-        error_msg = f"Pydantic validation failed: Error loading module '{module_path}': {e}"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg) from e
-        
+    spec = importlib.util.spec_from_file_location("schema_module", module_file)
+    if spec is None or spec.loader is None:
+        raise PydanticConfigSchemaLoadingError(f"Pydantic validation failed: Could not load module '{module_path}'")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
     # Get the model class
     if not hasattr(module, class_name):
-        available_classes = [name for name in dir(module) if not name.startswith('_') and isinstance(getattr(module, name), type)]
-        error_msg = f"Pydantic validation failed: Class '{class_name}' not found in '{module_path}'. Available classes: {', '.join(available_classes)}"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg)
-        
+        available_classes = [
+            name for name in dir(module) if not name.startswith("_") and isinstance(getattr(module, name), type)
+        ]
+        raise PydanticConfigSchemaLoadingError(
+            f"Pydantic validation failed: Class '{class_name}' not found in '{module_path}'. Available classes: {', '.join(available_classes)}"
+        )
+
     model_class = getattr(module, class_name)
-    
+
     # Verify it's a Pydantic model
-    if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
-        error_msg = f"Pydantic validation failed: '{class_name}' is not a Pydantic BaseModel"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg)
-        
+    if not (isinstance(model_class, type) and issubclass(model_class, pydantic.BaseModel)):
+        raise PydanticConfigSchemaLoadingError(
+            f"Pydantic validation failed: '{class_name}' is not a Pydantic BaseModel"
+        )
+
     return model_class
 
 
 def validate_config_with_pydantic(config: dict[str, Any], schema_spec: str) -> None:
     """Validate the final merged configuration against a Pydantic model.
-    
+
     Args:
         config: The final merged configuration dictionary
         schema_spec: Pydantic model specification in format "module.py::ModelClass"
-        
+
     Raises:
-        ConfigValidationError: If validation fails with detailed error message
+        ConfigSchemaValidationError: If validation fails with detailed error message
     """
     try:
         model_class = _load_pydantic_model(schema_spec)
-        
+
         # Validate the configuration
         model_class.model_validate(config)
-        print(f"✅ Configuration successfully validated against Pydantic model '{schema_spec}'")
-        
-    except ValidationError as e:
+        log.debug(f"✅ Configuration successfully validated against Pydantic model '{schema_spec}'")
+
+    except pydantic.ValidationError as e:
+        # Unpack Pydantic validation errors for better formatted output.
         error_details = ["Pydantic validation failed:"]
         for error in e.errors():
             location = " -> ".join(str(loc) for loc in error["loc"]) if error["loc"] else "root"
@@ -501,124 +509,98 @@ def validate_config_with_pydantic(config: dict[str, Any], schema_spec: str) -> N
             if "input" in error:
                 error_details.append(f"  Input value: {error['input']}")
         error_details.append(f"  Model: {schema_spec}")
-        error_msg = "\n".join(error_details)
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg) from e
-    except ConfigValidationError:
-        # Re-raise ConfigValidationError as-is
-        raise
-    except Exception as e:
-        error_msg = f"Pydantic validation failed: {e}"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg) from e
+        raise ConfigSchemaValidationError("\n".join(error_details)) from e
 
 
 def _load_json_schema(schema_file: str) -> dict[str, Any]:
     """Load a JSON schema from a file.
-    
+
     Args:
         schema_file: Path to the JSON Schema file
-        
+
     Returns:
         The loaded schema as a dictionary
-        
+
     Raises:
-        ConfigValidationError: If the schema file cannot be loaded
+        JSONSchemaLoadingError: If the schema file cannot be loaded
     """
     schema_path = pathlib.Path(schema_file)
     if not schema_path.exists():
-        error_msg = f"Schema validation failed: Schema file '{schema_file}' not found."
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg)
-        
+        raise JSONSchemaLoadingError(f"Schema validation failed: Schema file '{schema_file}' not found.")
+
     # Parse schema file (support JSON only for JSON Schema spec compliance)
     try:
-        if schema_file.lower().endswith('.json'):
+        if schema_file.lower().endswith(".json"):
             return cast("dict[str, Any]", json.loads(schema_path.read_text()))
         else:
-            error_msg = f"Schema validation failed: JSON Schema must be a .json file, got: {schema_file}"
-            log.error(error_msg)
-            raise ConfigValidationError(error_msg)
+            raise JSONSchemaLoadingError(
+                f"Schema validation failed: JSON Schema must be a .json file, got: {schema_file}"
+            )
     except json.JSONDecodeError as e:
-        error_msg = f"Schema validation failed: Invalid JSON in schema file '{schema_file}': {e}"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg) from e
+        raise JSONSchemaLoadingError(
+            f"Schema validation failed: Invalid JSON in schema file '{schema_file}': {e}"
+        ) from e
     except Exception as e:
-        error_msg = f"Schema validation failed: Error reading schema file '{schema_file}': {e}"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg) from e
+        raise JSONSchemaLoadingError(f"Schema validation failed: Error reading schema file '{schema_file}': {e}") from e
 
 
 def validate_config_with_jsonschema(config: dict[str, Any], schema_file: str) -> None:
     """Validate the final merged configuration against a JSON Schema.
-    
+
     Args:
         config: The final merged configuration dictionary
         schema_file: Path to the JSON Schema file
-        
+
     Raises:
         ConfigValidationError: If validation fails with detailed error message
     """
     try:
         schema = _load_json_schema(schema_file)
-        
+
         # Validate the configuration
         jsonschema.validate(instance=config, schema=schema)
-        print(f"✅ Configuration successfully validated against schema '{schema_file}'")
-        
+        log.debug(f"✅ Configuration successfully validated against schema '{schema_file}'")
+
     except jsonschema.ValidationError as e:
         error_details = ["Schema validation failed:"]
-        error_details.append(f"  Error at path: {' -> '.join(str(p) for p in e.absolute_path) if e.absolute_path else 'root'}")
+        error_details.append(
+            f"  Error at path: {' -> '.join(str(p) for p in e.absolute_path) if e.absolute_path else 'root'}"
+        )
         error_details.append(f"  Message: {e.message}")
         if e.validator_value:
             error_details.append(f"  Expected: {e.validator_value}")
-        if hasattr(e, 'instance') and e.instance is not None:
+        if hasattr(e, "instance") and e.instance is not None:
             error_details.append(f"  Actual value: {e.instance}")
         error_details.append("  Full validation context:")
         error_details.append(f"  Schema rule: {e.validator} = {e.validator_value}")
         error_msg = "\n".join(error_details)
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg) from e
+        raise ConfigSchemaValidationError(error_msg) from e
     except jsonschema.SchemaError as e:
-        error_msg = f"Schema validation failed: Invalid schema file. Schema error: {e.message}"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg) from e
-    except ConfigValidationError:
-        # Re-raise ConfigValidationError as-is
-        raise
-    except Exception as e:
-        error_msg = f"Schema validation failed: {e}"
-        log.error(error_msg)
-        raise ConfigValidationError(error_msg) from e
+        raise ConfigSchemaValidationError(
+            f"Schema validation failed: Invalid schema file. Schema error: {e.message}"
+        ) from e
 
 
 def validate_config_with_schema(config: dict[str, Any], schema: str) -> None:
     """Validate the final merged configuration against a schema.
-    
+
     Determines whether to use JSON Schema or Pydantic validation based on the schema format.
-    
+
     Args:
         config: The final merged configuration dictionary
         schema: Either a path to a JSON Schema file or a Pydantic model spec (module.py::Model)
-        
+
     Raises:
-        ConfigValidationError: If validation fails with detailed error message
+        ConfigSchemaValidationError: If validation fails with detailed error message
     """
     # Check if this is a Pydantic model specification (contains "::")
-    if "::" in schema:
+    if ".py" in schema and "::" in schema:
         # Pydantic validation - should be .py file
         module_path = schema.split("::", 1)[0]
-        if not module_path.endswith('.py'):
-            error_msg = f"Pydantic schema must be a .py file, got: {module_path}"
-            log.error(error_msg)
-            raise ConfigValidationError(error_msg)
+        if not module_path.endswith(".py"):
+            raise ConfigSchemaValidationError(f"Pydantic schema must be a .py file, got: {module_path}")
         validate_config_with_pydantic(config, schema)
     else:
-        # JSON Schema validation - should be .json file
-        if not schema.endswith('.json'):
-            error_msg = f"JSON Schema must be a .json file, got: {schema}"
-            log.error(error_msg)
-            raise ConfigValidationError(error_msg)
         validate_config_with_jsonschema(config, schema)
 
 
@@ -688,47 +670,43 @@ def merge(
     _config: list[str] = config or []
     _prefix: list[str] = prefix or []
     _functions: list[str] = functions or []
-    
+
     # Dynamic configuration
     merged_env: dict[str, str] = get_environment_variables(env_flags=_env, prefixes_list=_prefix)
-    
+
     # Custom functions
     log.debug(f"# functions {_functions=}")
     f = get_functions(_functions)
     TESTS.update(f["tests"])
     FILTERS.update(f["filters"])
-    
+
     # Static configuration
     confs = map_env_to_confs(config_files_or_globs=_config, env=merged_env)
     log.debug(f"# confs: {json.dumps(confs, indent=2)}")
-    
+
     # Process stdin configuration if provided
     _process_stdin_config(stdin_format, confs)
-    
+
     final_conf = reduce_confs(confs)
     log.debug(f"# reduced confs: {json.dumps(final_conf, indent=2)}")
-    
+
     # Validate final configuration against schema if provided
     if schema:
-        try:
-            validate_config_with_schema(final_conf, schema)
-        except ConfigValidationError as e:
-            log.error(str(e))
-            sys.exit(1)
-    
+        validate_config_with_schema(final_conf, schema)
+
     merged_template = merge_template(template, final_conf) if template else ""
     log.debug(f"# merged_template: {merged_template=}")
-    
+
     # Validation diff if requested
     diff = None
     if validate:
         validator_text = pathlib.Path(validate).read_text()
         diff = "\n".join(difflib.unified_diff(merged_template.splitlines(), validator_text.splitlines(), lineterm=""))
         log.debug(diff)
-    
+
     # Write output in the requested format
     _write_output(output, final_conf, merged_template)
-    
+
     return merged_template, diff
 
 

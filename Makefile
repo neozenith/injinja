@@ -2,7 +2,7 @@
 # SETUP
 ######################################################################
 .venv: pyproject.toml
-	uv sync
+	uv sync --all-groups
 
 .venv/deps: .venv pyproject.toml
 	uv sync
@@ -20,9 +20,12 @@ check: .venv/deps
 	uvx ruff check src/ tests/
 	uvx isort src/ tests/ --check-only
 	uv run mypy src/
-test: .venv/deps
+
+test: check .venv/deps
 	uv run pytest
 	uv run .github/scripts/update_coverage.py
+
+
 
 ######################################################################
 # DOCUMENTATION
@@ -35,7 +38,7 @@ diag: $(patsubst %.mmd,%.png,$(wildcard diagrams/*.mmd))
 
 docs: diag
 	uvx --from md-toc md_toc --in-place github --header-levels 2 *.md
-	uvx rumdl check . --fix --respect-gitignore -d MD013
+	uvx rumdl check . --fix --respect-gitignore -d MD013,MD033
 
 # MkDocs documentation
 docs-install: .venv
@@ -58,7 +61,7 @@ docs-clean:
 # https://docs.astral.sh/uv/guides/package/
 ######################################################################
 
-build: .venv/deps check docs
+build: .venv/deps test check docs docs-build
 	rm -rf dist
 	uv build --wheel
 
@@ -83,4 +86,4 @@ clean:
 	rm -rf .coverage
 	rm -rf site/
 
-.PHONY: format check docs build diag clean publish publish-test docs-install docs-serve docs-build docs-deploy docs-clean
+.PHONY: format check test docs build diag clean publish publish-test docs-install docs-serve docs-build docs-deploy docs-clean

@@ -5,7 +5,7 @@
     <a href="https://github.com/neozenith/injinja/releases"><img src="https://img.shields.io/github/release/neozenith/injinja" alt="Latest Release"></a>
     <a href="https://github.com/neozenith/injinja/actions/workflows/publish.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/publish.yml/badge.svg" alt="Build Status"></a>
     <!-- coverage-badge -->
-    <img src="https://img.shields.io/badge/coverage-92%25-brightgreen.svg" alt="Coverage">
+    <img src="https://img.shields.io/badge/coverage-90%25-brightgreen.svg" alt="Coverage">
     <!-- coverage-badge -->
 </p>
 

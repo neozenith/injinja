@@ -41,12 +41,14 @@ injinja -c 'config/{base,prod}/*.{yml,json}' -t template.j2
 Configuration files are themselves Jinja2 templates, templated with environment variables:
 
 **Environment:**
+
 ```bash
 export ENVIRONMENT=production
 export DB_PORT=5432
 ```
 
 **Configuration (`config.yml`):**
+
 ```yaml
 app:
   name: myapp
@@ -59,6 +61,7 @@ database:
 ```
 
 **Result after templating:**
+
 ```yaml
 app:
   name: myapp
@@ -75,6 +78,7 @@ database:
 Configuration files are recursively merged using deep merge semantics:
 
 **base.yml:**
+
 ```yaml
 app:
   name: myapp
@@ -86,6 +90,7 @@ database:
 ```
 
 **production.yml:**
+
 ```yaml
 app:
   features:
@@ -97,6 +102,7 @@ database:
 ```
 
 **Merged result:**
+
 ```yaml
 app:
   name: myapp
@@ -120,6 +126,7 @@ injinja -e DATABASE_URL=postgres://localhost/myapp -e DEBUG=true
 ### Environment Files
 
 **`.env` file:**
+
 ```bash
 # Database configuration
 DATABASE_URL=postgres://localhost/myapp
@@ -169,7 +176,7 @@ injinja --prefix MYAPP_ --prefix DB_ -c config.yml -t template.j2
 
 Organize configs by environment and component:
 
-```
+```text
 config/
 ├── base/
 │   ├── app.yml
@@ -184,6 +191,7 @@ config/
 ```
 
 Usage:
+
 ```bash
 injinja \
   -c 'config/base/*.yml' \
@@ -201,7 +209,7 @@ Use Jinja2 logic in configuration files:
 app:
   name: myapp
   debug: {{ ENVIRONMENT != 'production' }}
-  
+
 database:
   host: |
     {%- if ENVIRONMENT == 'production' -%}
@@ -211,7 +219,7 @@ database:
     {%- else -%}
     localhost
     {%- endif %}
-  
+
   connection_pool:
     min_connections: {{ 5 if ENVIRONMENT == 'production' else 1 }}
     max_connections: {{ 50 if ENVIRONMENT == 'production' else 5 }}
@@ -312,6 +320,7 @@ Debug mode shows:
 ### 1. Use Hierarchical Configuration
 
 Organize configs by concern and environment:
+
 ```bash
 injinja -c 'config/base/*.yml' -c 'config/env/prod.yml' -c 'config/overrides/*.yml'
 ```
@@ -319,6 +328,7 @@ injinja -c 'config/base/*.yml' -c 'config/env/prod.yml' -c 'config/overrides/*.y
 ### 2. Validate Required Variables
 
 Use Jinja2 to validate required environment variables:
+
 ```yaml
 {% if not DATABASE_URL %}
   {% set _ = raise_error('DATABASE_URL is required') %}
@@ -328,6 +338,7 @@ Use Jinja2 to validate required environment variables:
 ### 3. Provide Sensible Defaults
 
 Always provide defaults for optional configuration:
+
 ```yaml
 app:
   port: {{ APP_PORT | default(8080) | int }}
@@ -337,6 +348,7 @@ app:
 ### 4. Use Environment-Specific Configs
 
 Separate configuration by environment while sharing common base configuration:
+
 ```bash
 injinja -c base.yml -c environments/production.yml
 ```
@@ -344,6 +356,7 @@ injinja -c base.yml -c environments/production.yml
 ### 5. Document Environment Variables
 
 Create a `.env.example` file documenting all environment variables:
+
 ```bash
 # .env.example
 DATABASE_URL=postgres://localhost/myapp

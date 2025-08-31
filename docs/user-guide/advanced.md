@@ -114,7 +114,7 @@ environments=("development" "staging" "production")
 
 for env in "${environments[@]}"; do
   echo "Testing $env configuration..."
-  
+
   # Generate config
   injinja \
     -e ENVIRONMENT=$env \
@@ -122,7 +122,7 @@ for env in "${environments[@]}"; do
     -c "config/environments/$env.yml" \
     -t app.conf.j2 \
     -o "generated/$env.conf"
-  
+
   # Validate against expected
   if [ -f "expected/$env.conf" ]; then
     injinja \
@@ -222,6 +222,7 @@ database:
 ```
 
 Usage:
+
 ```bash
 injinja \
   -e FEATURES=auth,metrics,database \
@@ -268,7 +269,7 @@ Generate Terraform configurations:
 # terraform.tf.j2
 terraform {
   required_version = ">= 1.0"
-  
+
   backend "{{ TERRAFORM_BACKEND | default('local') }}" {
 {% if TERRAFORM_BACKEND == 's3' %}
     bucket = "{{ S3_BUCKET }}"
@@ -335,7 +336,7 @@ networks:
 {% endif %}
 ```
 
-### Kubernetes Integration  
+### Kubernetes Integration
 
 ```yaml
 # k8s-deployment.yml.j2
@@ -436,6 +437,7 @@ workers:
 ### Common Issues
 
 1. **Undefined Variable Errors**: Use defaults or conditional checks
+
 ```yaml
 # Wrong
 database_url: {{ DATABASE_URL }}
@@ -449,13 +451,15 @@ database_url: {{ DATABASE_URL }}
 {% endif %}
 ```
 
-2. **Merge Order Issues**: Explicitly control config file order
+1. **Merge Order Issues**: Explicitly control config file order
+
 ```bash
 # Order matters - later configs override earlier ones
 injinja -c base.yml -c environment.yml -c local-overrides.yml
 ```
 
-3. **Template Syntax Issues**: Use debug mode to see parsed configuration
+1. **Template Syntax Issues**: Use debug mode to see parsed configuration
+
 ```bash
 injinja --debug -c config.yml -t template.j2
 ```

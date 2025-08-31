@@ -8,7 +8,6 @@
 
 <p align="center">Injinja: <b>Inj</b>ectable <b>Jinja</b> Configuration tool.</p>
 <p align="center"><i>Insanely configurable... config system.</i></p>
-  
 
 <!-- TODO: Animated GIF demoing features. 800px wide -->
 
@@ -19,7 +18,6 @@
 - **Deep Merge:** Finally split those big mega config files into smaller more manageable ones in a folder hierarchy. We recursively merge them like they are the one mega file.
 - **Powerful:** Any of your config files are now empowered with the full programming capabilities of [`Jinja`](https://jinja.palletsprojects.com/en/stable/) templating engine.
 - **Platform Engineering:** Separate your projects into _Extensible Code_ driven by _Flexible Config_ to allow _"Drive By Contributors"_. Edit one YAML in Github Browser to start a PR to spin up new Snowflake Databases or Terraform modules.
-
 
 ## Quick Example
 

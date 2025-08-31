@@ -14,7 +14,9 @@ from jinja2.filters import FILTERS
 
 # Our Libraries
 from injinja.injinja import (
-    ConfigValidationError,
+    ConfigSchemaValidationError,
+    JSONSchemaLoadingError,
+    PydanticConfigSchemaLoadingError,
     _load_json_schema,
     _load_pydantic_model,
     dict_from_keyvalue_list,
@@ -449,13 +451,15 @@ class TestSchemaValidation:
         """Test successful Pydantic model loading."""
         # Create a simple Pydantic model file
         model_file = tmp_path / "test_models.py"
-        model_file.write_text(textwrap.dedent("""
+        model_file.write_text(
+            textwrap.dedent("""
             from pydantic import BaseModel
 
             class TestModel(BaseModel):
                 name: str
                 age: int
-        """))
+        """)
+        )
 
         # Test loading the model
         model_cls = _load_pydantic_model(f"{model_file}::TestModel")
@@ -468,7 +472,7 @@ class TestSchemaValidation:
 
     def test_pydantic_model_loading_missing_file(self):
         """Test Pydantic model loading with missing file."""
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(PydanticConfigSchemaLoadingError) as exc_info:
             _load_pydantic_model("/nonexistent/file.py::TestModel")
         assert "Module file '/nonexistent/file.py' not found" in str(exc_info.value)
 
@@ -477,7 +481,7 @@ class TestSchemaValidation:
         model_file = tmp_path / "test_models.py"
         model_file.write_text("from pydantic import BaseModel\n\nclass OtherModel(BaseModel): pass")
 
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(PydanticConfigSchemaLoadingError) as exc_info:
             _load_pydantic_model(f"{model_file}::MissingModel")
         assert "Class 'MissingModel' not found in" in str(exc_info.value)
 
@@ -486,20 +490,16 @@ class TestSchemaValidation:
         model_file = tmp_path / "test_models.py"
         model_file.write_text("invalid python syntax !!!")
 
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(SyntaxError):
             _load_pydantic_model(f"{model_file}::TestModel")
-        assert "Error loading module" in str(exc_info.value)
 
     def test_json_schema_loading_success(self, tmp_path):
         """Test successful JSON schema loading."""
         schema_file = tmp_path / "test_schema.json"
         schema_data = {
             "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "age": {"type": "integer", "minimum": 0}
-            },
-            "required": ["name", "age"]
+            "properties": {"name": {"type": "string"}, "age": {"type": "integer", "minimum": 0}},
+            "required": ["name", "age"],
         }
         schema_file.write_text(json.dumps(schema_data))
 
@@ -508,7 +508,7 @@ class TestSchemaValidation:
 
     def test_json_schema_loading_missing_file(self):
         """Test JSON schema loading with missing file."""
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(JSONSchemaLoadingError) as exc_info:
             _load_json_schema("/nonexistent/file.json")
         assert "Schema file '/nonexistent/file.json' not found" in str(exc_info.value)
 
@@ -517,7 +517,7 @@ class TestSchemaValidation:
         schema_file = tmp_path / "test_schema.json"
         schema_file.write_text("invalid json content {{{")
 
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(JSONSchemaLoadingError) as exc_info:
             _load_json_schema(str(schema_file))
         assert "Invalid JSON in schema file" in str(exc_info.value)
 
@@ -526,7 +526,7 @@ class TestSchemaValidation:
         schema_file = tmp_path / "test_schema.yaml"
         schema_file.write_text("name: test")
 
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(JSONSchemaLoadingError) as exc_info:
             _load_json_schema(str(schema_file))
         assert "JSON Schema must be a .json file" in str(exc_info.value)
 
@@ -534,21 +534,19 @@ class TestSchemaValidation:
         """Test successful Pydantic validation."""
         # Create a Pydantic model
         model_file = tmp_path / "test_models.py"
-        model_file.write_text(textwrap.dedent("""
+        model_file.write_text(
+            textwrap.dedent("""
             from pydantic import BaseModel
 
             class ConfigModel(BaseModel):
                 database_url: str
                 port: int
                 debug: bool = False
-        """))
+        """)
+        )
 
         # Valid configuration
-        config = {
-            "database_url": "postgresql://localhost:5432/test",
-            "port": 8080,
-            "debug": True
-        }
+        config = {"database_url": "postgresql://localhost:5432/test", "port": 8080, "debug": True}
 
         # Should not raise an exception
         validate_config_with_pydantic(config, f"{model_file}::ConfigModel")
@@ -557,25 +555,27 @@ class TestSchemaValidation:
         """Test Pydantic validation failure."""
         # Create a Pydantic model
         model_file = tmp_path / "test_models.py"
-        model_file.write_text(textwrap.dedent("""
+        model_file.write_text(
+            textwrap.dedent("""
             from pydantic import BaseModel
 
             class ConfigModel(BaseModel):
                 database_url: str
                 port: int
                 debug: bool = False
-        """))
+        """)
+        )
 
         # Invalid configuration (missing required field, wrong type)
         config = {
             "port": "not_an_integer",
-            "debug": True
+            "debug": True,
             # missing database_url
         }
 
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(ConfigSchemaValidationError) as exc_info:
             validate_config_with_pydantic(config, f"{model_file}::ConfigModel")
-        
+
         error_msg = str(exc_info.value)
         assert "Pydantic validation failed" in error_msg
         assert "database_url" in error_msg or "port" in error_msg
@@ -584,7 +584,7 @@ class TestSchemaValidation:
         """Test Pydantic validation with invalid schema specification format."""
         config = {"test": "value"}
 
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(PydanticConfigSchemaLoadingError) as exc_info:
             validate_config_with_pydantic(config, "invalid_format")
         assert "Invalid format" in str(exc_info.value)
         assert "Expected format: 'module.py::ModelClass'" in str(exc_info.value)
@@ -598,18 +598,14 @@ class TestSchemaValidation:
             "properties": {
                 "name": {"type": "string"},
                 "age": {"type": "integer", "minimum": 0},
-                "email": {"type": "string", "format": "email"}
+                "email": {"type": "string", "format": "email"},
             },
-            "required": ["name", "age"]
+            "required": ["name", "age"],
         }
         schema_file.write_text(json.dumps(schema_data))
 
         # Valid configuration
-        config = {
-            "name": "John Doe",
-            "age": 30,
-            "email": "john@example.com"
-        }
+        config = {"name": "John Doe", "age": 30, "email": "john@example.com"}
 
         # Should not raise an exception
         validate_config_with_jsonschema(config, str(schema_file))
@@ -620,24 +616,21 @@ class TestSchemaValidation:
         schema_file = tmp_path / "test_schema.json"
         schema_data = {
             "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "age": {"type": "integer", "minimum": 0}
-            },
-            "required": ["name", "age"]
+            "properties": {"name": {"type": "string"}, "age": {"type": "integer", "minimum": 0}},
+            "required": ["name", "age"],
         }
         schema_file.write_text(json.dumps(schema_data))
 
         # Invalid configuration
         config = {
             "name": 123,  # Should be string
-            "age": -5     # Should be >= 0
+            "age": -5,  # Should be >= 0
             # Missing required fields handled by schema
         }
 
-        with pytest.raises(ConfigValidationError) as exc_info:
+        with pytest.raises(ConfigSchemaValidationError) as exc_info:
             validate_config_with_jsonschema(config, str(schema_file))
-        
+
         error_msg = str(exc_info.value)
         assert "Schema validation failed" in error_msg
 
@@ -645,13 +638,15 @@ class TestSchemaValidation:
         """Test unified schema validation interface with Pydantic."""
         # Create a Pydantic model
         model_file = tmp_path / "test_models.py"
-        model_file.write_text(textwrap.dedent("""
+        model_file.write_text(
+            textwrap.dedent("""
             from pydantic import BaseModel
 
             class UnifiedModel(BaseModel):
                 service_name: str
                 replicas: int = 1
-        """))
+        """)
+        )
 
         config = {"service_name": "api", "replicas": 3}
 
@@ -664,11 +659,8 @@ class TestSchemaValidation:
         schema_file = tmp_path / "unified_schema.json"
         schema_data = {
             "type": "object",
-            "properties": {
-                "service_name": {"type": "string"},
-                "replicas": {"type": "integer", "minimum": 1}
-            },
-            "required": ["service_name"]
+            "properties": {"service_name": {"type": "string"}, "replicas": {"type": "integer", "minimum": 1}},
+            "required": ["service_name"],
         }
         schema_file.write_text(json.dumps(schema_data))
 
@@ -690,23 +682,15 @@ class TestSchemaValidation:
         schema_file = tmp_path / "schema.json"
         schema_data = {
             "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "port": {"type": "integer"}
-            },
-            "required": ["name", "port"]
+            "properties": {"name": {"type": "string"}, "port": {"type": "integer"}},
+            "required": ["name", "port"],
         }
         schema_file.write_text(json.dumps(schema_data))
 
         output_file = tmp_path / "output.txt"
 
         # Should not raise an exception
-        merge(
-            config=[str(config_file)],
-            template=str(template_file),
-            output=str(output_file),
-            schema=str(schema_file)
-        )
+        merge(config=[str(config_file)], template=str(template_file), output=str(output_file), schema=str(schema_file))
 
         assert output_file.exists()
         assert "App: test-app on port 8080" in output_file.read_text()
@@ -724,35 +708,29 @@ class TestSchemaValidation:
         schema_file = tmp_path / "schema.json"
         schema_data = {
             "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "port": {"type": "integer"}
-            },
-            "required": ["name", "port"]
+            "properties": {"name": {"type": "string"}, "port": {"type": "integer"}},
+            "required": ["name", "port"],
         }
         schema_file.write_text(json.dumps(schema_data))
 
         output_file = tmp_path / "output.txt"
 
-        # Should raise SystemExit due to validation failure
-        with pytest.raises(SystemExit) as exc_info:
+        # Should raise ConfigSchemaValidationError due to validation failure
+        with pytest.raises(ConfigSchemaValidationError) as exc_info:
             merge(
-                config=[str(config_file)],
-                template=str(template_file),
-                output=str(output_file),
-                schema=str(schema_file)
+                config=[str(config_file)], template=str(template_file), output=str(output_file), schema=str(schema_file)
             )
-        
-        assert exc_info.value.code == 1
+        assert "Schema validation failed" in str(exc_info.value)
+        assert "port" in str(exc_info.value)
         assert not output_file.exists()  # Should not create output on validation failure
 
     def test_configuration_validation_error_custom_exception(self):
-        """Test ConfigValidationError can be raised and caught."""
+        """Test ConfigSchemaValidationError can be raised and caught."""
         error_msg = "Test validation error"
-        
-        with pytest.raises(ConfigValidationError) as exc_info:
-            raise ConfigValidationError(error_msg)
-        
+
+        with pytest.raises(ConfigSchemaValidationError) as exc_info:
+            raise ConfigSchemaValidationError(error_msg)
+
         assert str(exc_info.value) == error_msg
 
     def test_schema_validation_with_none_schema(self, tmp_path):
@@ -760,21 +738,21 @@ class TestSchemaValidation:
         # Create a config file with test data
         config_file = tmp_path / "config.yaml"
         config_file.write_text("test: value")
-        
+
         # Call merge without schema - should not raise any validation error
         template_file = tmp_path / "template.txt"
         template_file.write_text("Value: {{ test }}")
-        
+
         output_file = tmp_path / "output.txt"
-        
+
         # Should work without schema validation
         merge(
             config=[str(config_file)],
             template=str(template_file),
             output=str(output_file),
-            schema=None  # No schema validation
+            schema=None,  # No schema validation
         )
-        
+
         assert output_file.exists()
         assert "Value: value" in output_file.read_text()
 
@@ -782,30 +760,26 @@ class TestSchemaValidation:
         """Test that the unified interface correctly routes to Pydantic vs JSON Schema."""
         # Test JSON Schema path (no :: in schema)
         schema_file = tmp_path / "test.json"
-        schema_data = {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"}
-            },
-            "required": ["name"]
-        }
+        schema_data = {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}
         schema_file.write_text(json.dumps(schema_data))
-        
+
         config = {"name": "test"}
-        
+
         # This should route to JSON Schema validation
         validate_config_with_schema(config, str(schema_file))
-        
+
         # Test Pydantic path (with :: in schema)
         model_file = tmp_path / "models.py"
-        model_file.write_text(textwrap.dedent("""
+        model_file.write_text(
+            textwrap.dedent("""
             from pydantic import BaseModel
             
             class TestModel(BaseModel):
                 name: str
-        """))
-        
-        # This should route to Pydantic validation  
+        """)
+        )
+
+        # This should route to Pydantic validation
         validate_config_with_schema(config, f"{model_file}::TestModel")
 
     def test_debug_mode_activation(self):
@@ -819,24 +793,24 @@ class TestSchemaValidation:
         # Save original state
         original_argv = sys.argv[:]
         original_debug_mode = injinja.DEBUG_MODE
-        
+
         try:
             # Test with --debug in argv
             sys.argv = ["injinja", "--debug", "other", "args"]
-            
+
             # Reload the module to trigger the debug mode detection
             # Since the module is already loaded, we'll just test the logic
             test_argv = ["injinja", "--debug", "other", "args"]
-            
+
             # Simulate the debug mode detection logic
             debug_mode_activated = "--debug" in test_argv
             assert debug_mode_activated is True
-            
+
             # Test without --debug in argv
             test_argv = ["injinja", "other", "args"]
             debug_mode_activated = "--debug" in test_argv
             assert debug_mode_activated is False
-            
+
         finally:
             # Restore original state
             sys.argv = original_argv
@@ -852,13 +826,13 @@ class TestSchemaValidation:
         test_config = dict(CLI_CONFIG)  # Copy existing config
         test_config["test_custom"] = {
             "short_flag": "-x",  # Custom short flag
-            "help": "Test custom short flag"
+            "help": "Test custom short flag",
         }
-        
+
         # Remove schema to avoid conflicts in this test
         if "schema" in test_config:
             del test_config["schema"]
-        
+
         # Manually test the custom short flag logic
         flag_kwargs = test_config["test_custom"]
         if "short_flag" in flag_kwargs:
@@ -871,14 +845,14 @@ class TestSchemaValidation:
 
     def test_error_handling_edge_cases(self):
         """Test error handling edge cases to improve coverage."""
-        # Test ConfigValidationError with different message types
-        error1 = ConfigValidationError("Simple message")
+        # Test ConfigSchemaValidationError with different message types
+        error1 = ConfigSchemaValidationError("Simple message")
         assert str(error1) == "Simple message"
-        
-        error2 = ConfigValidationError("")  # Empty message
+
+        error2 = ConfigSchemaValidationError("")  # Empty message
         assert str(error2) == ""
-        
+
         # Test multiple error instantiation
-        errors = [ConfigValidationError(f"Error {i}") for i in range(3)]
+        errors = [ConfigSchemaValidationError(f"Error {i}") for i in range(3)]
         assert len(errors) == 3
-        assert all(isinstance(e, ConfigValidationError) for e in errors)
+        assert all(isinstance(e, ConfigSchemaValidationError) for e in errors)

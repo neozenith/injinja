@@ -19,7 +19,7 @@ This separation allows configuration files themselves to be dynamic and environm
 
 ### Configuration Flow
 
-```
+```text
 Environment Variables → Template Config Files → Merge Configs → Apply to Template → Output
       (DYNAMIC)              (STATIC)           (MERGED)         (FINAL)        (RESULT)
 ```
@@ -39,6 +39,7 @@ Environment Variables → Template Config Files → Merge Configs → Apply to T
 3. **Direct Variables** (via `-e KEY=VALUE`)
 
 **Functions:**
+
 - `get_environment_variables()` - Orchestrates collection from all sources
 - `read_env_file()` - Parses `.env` files with quoted value support
 - `dict_from_prefixes()` - Filters `os.environ` by prefixes
@@ -47,10 +48,12 @@ Environment Variables → Template Config Files → Merge Configs → Apply to T
 ### 2. Configuration File Processing
 
 **File Discovery:**
+
 - `expand_files_list()` - Resolves file paths and glob patterns
 - Supports YAML (`.yml`, `.yaml`), JSON (`.json`), and TOML (`.toml`)
 
 **Configuration Loading:**
+
 - `load_config()` - Detects format and parses files
 - Each config file is templated with environment variables
 - `map_env_to_confs()` - Applies environment variables to each config file independently
@@ -58,6 +61,7 @@ Environment Variables → Template Config Files → Merge Configs → Apply to T
 ### 3. Configuration Merging
 
 **Deep Merge Process:**
+
 - `reduce_confs()` - Uses `deepmerge.always_merger` for recursive merging
 - Later configurations override earlier ones
 - Maintains nested structure while allowing targeted overrides
@@ -65,6 +69,7 @@ Environment Variables → Template Config Files → Merge Configs → Apply to T
 ### 4. Template Processing
 
 **Template Application:**
+
 - `merge_template()` - Applies final merged config to target templates
 - Uses Jinja2's `StrictUndefined` for error detection (Jinja2 3.x+)
 - Supports custom filters and tests via function loading
@@ -72,6 +77,7 @@ Environment Variables → Template Config Files → Merge Configs → Apply to T
 ### 5. Custom Function System
 
 **Function Loading:**
+
 - `get_functions()` - Dynamically imports Python modules
 - Discovers functions with `filter_` and `test_` prefixes
 - Registers with global Jinja2 environment
@@ -106,7 +112,8 @@ The "Collections of Configs" pattern enables:
 4. **Override Flexibility** - Precise control over configuration precedence
 
 Example structure:
-```
+
+```text
 config/
 ├── base/
 │   ├── database.yml      # Base database config
@@ -127,6 +134,7 @@ config/
 **Why:** Enables configuration files to be dynamic while keeping clear separation of concerns.
 
 **Benefits:**
+
 - Configuration logic doesn't mix with output formatting
 - Environment-specific configs can be validated independently
 - Debugging is easier with clear intermediate states
@@ -136,6 +144,7 @@ config/
 **Why:** Allows partial overrides without losing entire configuration sections.
 
 **Example:**
+
 ```yaml
 # base.yml
 database:
@@ -158,6 +167,7 @@ database:
 **Why:** Provides predictable override behavior.
 
 **Usage:**
+
 ```bash
 # Base → Environment → Local overrides
 injinja -c base.yml -c environments/prod.yml -c local-overrides.yml
@@ -168,6 +178,7 @@ injinja -c base.yml -c environments/prod.yml -c local-overrides.yml
 **Why:** Supports different deployment and development patterns.
 
 **Flexibility:**
+
 - Development: `.env` files for local configuration
 - CI/CD: Direct environment variables
 - Platform: Prefix filtering for namespace isolation
