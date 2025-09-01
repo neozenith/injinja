@@ -4,7 +4,9 @@
     <!-- TODO: Catchy Logo, 450px wide -->
     <a href="https://github.com/neozenith/injinja/releases"><img src="https://img.shields.io/github/release/neozenith/injinja" alt="Latest Release"></a>
     <a href="https://github.com/neozenith/injinja/actions/workflows/publish.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/publish.yml/badge.svg" alt="Build Status"></a>
-    <img src="https://img.shields.io/badge/coverage-92%25-brightgreen" alt="Coverage">
+    <!-- coverage-badge -->
+    <img src="https://img.shields.io/badge/coverage-92%25-brightgreen.svg" alt="Coverage">
+    <!-- coverage-badge -->
 </p>
 
 <p align="center">Injinja: <b>Inj</b>ectable <b>Jinja</b> Configuration tool.</p>
