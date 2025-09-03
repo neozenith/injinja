@@ -30,6 +30,6 @@ jobs:
         run: |
           make check
 
-      - name: Update coverage badge
+      - name: Run tests
         run: |
-          uv run .github/scripts/update_coverage.py
+          make test
