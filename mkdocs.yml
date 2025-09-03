@@ -18,15 +18,18 @@ theme:
     - search.share
     - toc.follow
     - toc.integrate
+  icon:
+    logo: material/ninja
+  favicon:  🥷
   palette:
     - scheme: default
-      primary: indigo
+      primary: deep orange
       accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: indigo
+      primary: brown
       accent: indigo
       toggle:
         icon: material/brightness-4

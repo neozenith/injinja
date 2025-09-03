@@ -41,13 +41,13 @@ docs: diag
 docs-install: .venv
 	uv sync --group docs
 
-docs-serve: docs-install diag
+docs-serve: docs-build diag
 	uv run mkdocs serve
 
 docs-build: docs-install diag
 	uv run mkdocs build --strict
 
-docs-deploy: docs-install diag
+docs-deploy: docs-build diag
 	uv run mkdocs gh-deploy --force
 
 docs-clean:
@@ -77,5 +77,10 @@ clean:
 	rm -rf dist
 	rm -rf .venv
 	rm -rf diagrams/*.png
+	rm -rf htmlcov/
+	rm -rf coverage.json
+	rm -rf .*_cache
+	rm -rf .coverage
+	rm -rf site/
 
 .PHONY: format check docs build diag clean publish publish-test docs-install docs-serve docs-build docs-deploy docs-clean

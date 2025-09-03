@@ -24,11 +24,15 @@ app:
   name: "{{ app_name | default('MyApp') }}"
   version: "{{ app_version | default('1.0.0') }}"
   environment: "{{ env | default('development') }}"
+```
 
+and `db.yml`:
+
+```yaml
 database:
   host: "{{ db_host | default('localhost') }}"
   port: 5432
-  name: "{{ app.name | lower }}_{{ app.environment }}"
+  name: "{{ app_name | lower }}_{{ env | default('development') }}"
 ```
 
 ### 2. Create a Template
@@ -54,7 +58,13 @@ database = {{ database.name }}
 
 ```bash
 # Basic usage with environment variables
-injinja -e app_name=MyAwesomeApp -e app_version=2.1.0 -e env=production -e db_host=prod.example.com -c config.yml -t app.conf.j2
+injinja \
+-e app_name=MyAwesomeApp \
+-e app_version=2.1.0 \
+-e env=production \
+-e db_host=prod.example.com \
+-c config.yml \
+-t app.conf.j2
 ```
 
 ### 4. Output
