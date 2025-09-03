@@ -1,0 +1,91 @@
+site_name: Injinja Documentation
+site_description: "Injinja: Injectable Jinja Configuration tool. Insanely configurable... config system."
+site_url: https://neozenith.github.io/injinja/
+site_author: Josh Peak
+repo_url: https://github.com/neozenith/injinja
+repo_name: neozenith/injinja
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.highlight
+    - search.share
+    - toc.follow
+    - toc.integrate
+  icon:
+    logo: material/ninja
+  favicon:  🥷
+  palette:
+    - scheme: default
+      primary: deep orange
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: brown
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            members_order: source
+            show_root_heading: true
+            show_source: false
+            show_bases: false
+            heading_level: 2
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - Installation: user-guide/installation.md
+    - Quick Start: user-guide/quick-start.md
+    - Configuration: user-guide/configuration.md
+    - Advanced Usage: user-guide/advanced.md
+  - API Reference:
+    - Core Module: api/injinja.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Diagrams: architecture/diagrams.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/neozenith/injinja
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/injinja/

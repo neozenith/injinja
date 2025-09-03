@@ -37,6 +37,22 @@ docs: diag
 	uvx --from md-toc md_toc --in-place github --header-levels 2 *.md
 	uvx rumdl check . --fix --respect-gitignore -d MD013
 
+# MkDocs documentation
+docs-install: .venv
+	uv sync --group docs
+
+docs-serve: docs-build diag
+	uv run mkdocs serve
+
+docs-build: docs-install diag
+	uv run mkdocs build --strict
+
+docs-deploy: docs-build diag
+	uv run mkdocs gh-deploy --force
+
+docs-clean:
+	rm -rf site/
+
 ######################################################################
 # BUILD AND PUBLISHING
 # https://docs.astral.sh/uv/guides/package/
@@ -61,5 +77,10 @@ clean:
 	rm -rf dist
 	rm -rf .venv
 	rm -rf diagrams/*.png
+	rm -rf htmlcov/
+	rm -rf coverage.json
+	rm -rf .*_cache
+	rm -rf .coverage
+	rm -rf site/
 
-.PHONY: format check docs build diag clean publish publish-test
+.PHONY: format check docs build diag clean publish publish-test docs-install docs-serve docs-build docs-deploy docs-clean
