@@ -392,6 +392,7 @@ def merge(
     """Merge configuration files and Jinja2 template to produce a final configuration file.
 
     This is the programmatic interface to:
+    
     - Take the DYNAMIC configuration (environment variables) and
     - merge it with the STATIC configuration (files) to produce a _final complex configuration_.
     - This final configuration is then applied to your target Jinja2 template file.
