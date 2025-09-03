@@ -6,8 +6,12 @@
 
 #### Valid Configuration
 
-```bash
-injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_example.json
+```sh
+injinja \
+-e env_name=production \
+-c examples/config_valid.yaml \
+-t examples/template.yml \
+-s examples/schema_example.json 
 ```
 
 **Expected**: ✅ Success with templated output
@@ -15,7 +19,11 @@ injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples
 #### Invalid Configuration  
 
 ```bash
-injinja -c examples/config_invalid.yaml -t examples/template.yml --schema examples/schema_example.json
+injinja \
+-e env_name=production \
+-c examples/config_invalid.yaml \
+-t examples/template.yml \
+-s examples/schema_example.json
 ```
 
 **Expected**: ❌ Validation errors for:
@@ -27,7 +35,12 @@ injinja -c examples/config_invalid.yaml -t examples/template.yml --schema exampl
 #### Dynamic Environment Variables
 
 ```bash
-injinja -e env_name=production -e db_host=prod.example.com -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_example.json
+injinja \
+-e env_name=production \
+-e db_host=prod.example.com \
+-c examples/config_valid.yaml \
+-t examples/template.yml \
+-s examples/schema_example.json
 ```
 
 **Expected**: ✅ Success with production values templated
@@ -37,7 +50,11 @@ injinja -e env_name=production -e db_host=prod.example.com -c examples/config_va
 #### Basic Model Validation
 
 ```bash
-injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_models.py::ConfigModel
+injinja \
+-e env_name=production \
+-c examples/config_valid.yaml \
+-t examples/template.yml \
+-s examples/schema_models.py::ConfigModel
 ```
 
 **Expected**: ✅ Success with templated output
@@ -45,7 +62,11 @@ injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples
 #### Strict Model Validation
 
 ```bash
-injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_models.py::StrictConfigModel
+injinja \
+-e env_name=production \
+-c examples/config_valid.yaml \
+-t examples/template.yml \
+-s examples/schema_models.py::StrictConfigModel
 ```
 
 **Expected**: ❌ Failure due to extra 'features' field not allowed in strict mode
@@ -53,7 +74,11 @@ injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples
 #### Production Model Validation
 
 ```bash
-injinja -c examples/config_pydantic_invalid.yaml -t examples/template.yml --schema examples/schema_models.py::ProductionConfigModel
+injinja \
+-e env_name=production \
+-c examples/config_pydantic_invalid.yaml \
+-t examples/template.yml \
+-s examples/schema_models.py::ProductionConfigModel
 ```
 
 **Expected**: ❌ Multiple validation errors:
@@ -64,7 +89,11 @@ injinja -c examples/config_pydantic_invalid.yaml -t examples/template.yml --sche
 #### Missing Model Class
 
 ```bash
-injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_models.py::NonExistentModel
+injinja \
+-e env_name=production \
+-c examples/config_valid.yaml \
+-t examples/template.yml \
+--schema examples/schema_models.py::NonExistentModel
 ```
 
 **Expected**: ❌ Error about missing class with list of available classes
@@ -72,7 +101,11 @@ injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples
 #### Invalid Module Path
 
 ```bash
-injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/missing_file.py::ConfigModel
+injinja \
+-e env_name=production \
+-c examples/config_valid.yaml \
+-t examples/template.yml \
+-s examples/missing_file.py::ConfigModel
 ```
 
 **Expected**: ❌ Error about module file not found
@@ -80,7 +113,11 @@ injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples
 #### Invalid Format
 
 ```bash
-injinja -c examples/config_valid.yaml -t examples/template.yml --schema examples/schema_models.py
+injinja \
+-e env_name=production \
+-c examples/config_valid.yaml \
+-t examples/template.yml \
+-s examples/schema_models.py
 ```
 
 **Expected**: ❌ Error about invalid format, expected module.py::ClassName
@@ -106,7 +143,10 @@ injinja -c examples/config_valid.yaml -o config-json --schema examples/schema_ex
 #### No Schema Provided
 
 ```bash
-injinja -c examples/config_valid.yaml -t examples/template.yml
+injinja \
+-e env_name=production \
+-c examples/config_valid.yaml \
+-t examples/template.yml
 ```
 
 **Expected**: ✅ Success (no validation performed)
