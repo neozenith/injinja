@@ -20,7 +20,9 @@ check: .venv/deps
 	uvx ruff check src/ tests/
 	uvx isort src/ tests/ --check-only
 	uv run mypy src/
+test: .venv/deps
 	uv run pytest
+	uv run .github/scripts/update_coverage.py
 
 ######################################################################
 # DOCUMENTATION
