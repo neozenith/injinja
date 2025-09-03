@@ -112,13 +112,13 @@ CLI_CONFIG: dict[str, Any] = {
     "stdin-format": {  # New argument for stdin format
         "required": False,
         "default": None,
+        "short_flag": "-i", # i for IN
         "choices": ["json", "yml", "yaml", "toml"],
         "help": "Format of the configuration data piped via stdin (json, yaml, toml). If set, injinja will attempt to read from stdin. eg cat config.json | python3 injinja.py --stdin-format json",
     },
     "schema": {  # Schema validation file
         "required": False,
         "default": None,
-        "short_flag": None,  # No short flag to avoid conflict with -s (stdin-format)
         "help": "Schema file to validate the final merged configuration. JSON Schema files (mostly .json but also supported .yml, .toml) or Pydantic models (schema_models.py::MyModel).",
     },
 }

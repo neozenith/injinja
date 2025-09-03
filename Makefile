@@ -25,6 +25,9 @@ test: check .venv/deps
 	uv run pytest
 	uv run .github/scripts/update_coverage.py
 
+show_coverage: test
+	uv run -m http.server --directory htmlcov/
+
 
 
 ######################################################################
