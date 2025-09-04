@@ -473,6 +473,7 @@ injinja --debug -c config.yml -t template.j2
 
 ## Next Steps
 
+- Learn about [Schema Validation](schema-validation.md) for validating configurations
 - Check out the [API Reference](../api/injinja.md) for programmatic usage
 - Explore the [Architecture](../architecture/overview.md) documentation
 - See real-world examples in the project repository

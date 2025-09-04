@@ -366,6 +366,7 @@ LOG_LEVEL=info
 
 ## Next Steps
 
+- Learn about [Schema Validation](schema-validation.md) to validate configurations
 - Explore [Advanced Usage](advanced.md) patterns
 - Learn about custom functions and filters
 - Check the [API Reference](../api/injinja.md) for programmatic usage
