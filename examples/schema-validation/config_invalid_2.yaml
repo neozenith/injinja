@@ -1,0 +1,12 @@
+app:
+  name: "my-awesome-app"
+  version: "1.2.3"  # Invalid: should be semver format like "1.2.3"
+  environment: "testing"  # Invalid: not in allowed enum values
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "my_app_db"
+
+features:
+  feature_a: true

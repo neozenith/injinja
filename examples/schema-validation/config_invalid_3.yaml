@@ -1,0 +1,12 @@
+app:
+  name: "my-awesome-app"
+  version: "1.2.3"
+  environment: "staging"
+
+database:
+  host: "localhost"
+  port: 70000  # Invalid: port out of range
+  name: "my_app_db"
+
+features:
+  feature_a: true

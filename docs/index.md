@@ -21,12 +21,92 @@
 
 ## Quick Example
 
-```bash
-# Template SQL DDL with dynamic environment and static config
-uvx injinja -e home_dir="$HOME" -c 'config/*' -t sql/warehouse.sql.j2
+### **Step 1**: Config files with the power of `Jinja`
+
+`config/databases.yml`
+```yml
+databases:
+  {{ prefix | default('') | upper }}{{env_name | upper}}_BRONZE:
+    description: Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.
+      
+  {{ prefix | default('') | upper }}{{env_name | upper}}_SILVER:
+    description: Primary data modelling area manmaged by dbt.
+
+  {{ prefix | default('') | upper }}{{env_name | upper}}_GOLD:
+    description: Curated and well modelled data. Read only access to BI tools.
 ```
 
-## Architecture
+### **Step 2**: Templating foundational files with your convention
+
+`sql/databases.sql.j2`
+```sql
+-- Create Databases
+{% for database_name, database_properties in databases.items() -%}
+CREATE OR ALTER DATABASE {{ database_name }}
+    {%- if database_properties.description is defined %}
+    WITH COMMENT = '{{ database_properties.description }}'
+    {%- endif -%}
+    ;
+{% endfor %}
+```
+
+### **Step 3**: One config for every environment (and branch)
+
+**3a** _Generate PROD SQL statements_
+
+```sh
+# Template SQL DDL with dynamic environment variables and static config
+uvx injinja \
+-e env_name=prod \
+-c 'config/*' \
+-t sql/databases.sql.j2
+```
+
+```sql
+-- Create Databases
+CREATE OR ALTER DATABASE PROD_BRONZE
+    WITH COMMENT = 'Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.';
+CREATE OR ALTER DATABASE PROD_SILVER
+    WITH COMMENT = 'Primary data modelling area manmaged by dbt.';
+CREATE OR ALTER DATABASE PROD_GOLD
+    WITH COMMENT = 'Curated and well modelled data. Read only access to BI tools.';
+```
+
+**3b** _Generate DEV Databases per branch_
+
+```sh
+# Inject normalised git branch prefix
+uvx injinja \
+-e env_name=dev \
+-e prefix="_$(git symbolic-ref --short HEAD | sed 's/\//_/g')" \ 
+-c 'config/*' \
+-t sql/databases.sql.j2
+```
+
+```sql
+-- Create Databases
+CREATE OR ALTER DATABASE JIRA-123_INCREMENTAL-MODEL__DEV_BRONZE
+    WITH COMMENT = 'Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.';
+CREATE OR ALTER DATABASE JIRA-123_INCREMENTAL-MODEL__DEV_SILVER
+    WITH COMMENT = 'Primary data modelling area manmaged by dbt.';
+CREATE OR ALTER DATABASE JIRA-123_INCREMENTAL-MODEL__DEV_GOLD
+    WITH COMMENT = 'Curated and well modelled data. Read only access to BI tools.';
+```
+
+### **(Optional) Step 4**: Run the templated output
+
+This command pipes the output directly from `stdout` to `stdin` of the `snow sql` cli tool.
+
+```sh
+uvx injinja ... | snow sql -i
+```
+
+### **Summary**
+
+Now you can see how you can have enhanced configuration which stays as the central source of truth for the structure of your environments and then parametrise as need be.
+
+
+## Simplified Architecture
 
 ![Overview Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/overview.png?raw=true)
 
@@ -34,7 +114,7 @@ uvx injinja -e home_dir="$HOME" -c 'config/*' -t sql/warehouse.sql.j2
 2. **Static Configuration**: YAML/JSON/TOML files that can themselves be Jinja templates
 3. **Template Rendering**: Apply the merged configuration to your target template
 
-## Getting Started
+## Next Steps
 
 Ready to dive in? Check out our [Installation Guide](user-guide/installation.md) and [Quick Start](user-guide/quick-start.md) to get up and running in minutes.
 

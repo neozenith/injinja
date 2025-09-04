@@ -1,0 +1,8 @@
+-- Create Databases
+{% for database_name, database_properties in databases.items() -%}
+CREATE OR ALTER DATABASE {{ database_name }}
+    {%- if database_properties.description is defined %}
+    WITH COMMENT = '{{ database_properties.description }}'
+    {%- endif -%}
+    ;
+{% endfor %}

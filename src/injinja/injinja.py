@@ -445,7 +445,7 @@ def _load_pydantic_model(schema_spec: str) -> type[pydantic.BaseModel]:
     # Parse the module and class specification
     if ".py" not in schema_spec or "::" not in schema_spec:
         raise PydanticConfigSchemaLoadingError(
-            f"Pydantic validation failed: Invalid format '{schema_spec}'. Expected format: 'module.py::ModelClass'"
+            f"Pydantic validation failed:\nInvalid format '{schema_spec}'.\nExpected format: 'module.py::ModelClass'"
         )
 
     module_path, class_name = schema_spec.split("::", 1)
@@ -465,10 +465,16 @@ def _load_pydantic_model(schema_spec: str) -> type[pydantic.BaseModel]:
     # Get the model class
     if not hasattr(module, class_name):
         available_classes = [
-            name for name in dir(module) if not name.startswith("_") and isinstance(getattr(module, name), type)
+            name for name in dir(module)
+            if not name.startswith("_")
+            and isinstance(getattr(module, name), type)
+            and getattr(module, name).__module__ == module.__name__  # Ensure it's defined in this module
+            and hasattr(getattr(module, name), '__bases__')  # Ensure it has bases
+            and any('BaseModel' in str(base) for base in getattr(module, name).__mro__)  # Check it is a Pydantic model
         ]
         raise PydanticConfigSchemaLoadingError(
-            f"Pydantic validation failed: Class '{class_name}' not found in '{module_path}'. Available classes: {', '.join(available_classes)}"
+            f"Pydantic validation failed:\nClass '{class_name}' not found in '{module_path}'.\n"
+            f"Available classes:\n- {'\n- '.join(available_classes)}"
         )
 
     model_class = getattr(module, class_name)
@@ -502,13 +508,14 @@ def validate_config_with_pydantic(config: dict[str, Any], schema_spec: str) -> N
     except pydantic.ValidationError as e:
         # Unpack Pydantic validation errors for better formatted output.
         error_details = ["Pydantic validation failed:"]
+        error_details.append(f"  Model: {schema_spec}")
         for error in e.errors():
             location = " -> ".join(str(loc) for loc in error["loc"]) if error["loc"] else "root"
-            error_details.append(f"  Error at path: {location}")
-            error_details.append(f"  Message: {error['msg']}")
+            error_details.append(f"    Error at path: {location}")
+            error_details.append(f"    Message: {error['msg']}")
             if "input" in error:
-                error_details.append(f"  Input value: {error['input']}")
-        error_details.append(f"  Model: {schema_spec}")
+                error_details.append(f"    Input value: {error['input']}")
+            error_details.append("")  # Blank line between errors
         raise ConfigSchemaValidationError("\n".join(error_details)) from e
 
 
@@ -576,7 +583,7 @@ def validate_config_with_jsonschema(config: dict[str, Any], schema_file: str) ->
         error_msg = "\n".join(error_details)
         raise ConfigSchemaValidationError(error_msg) from e
     except jsonschema.SchemaError as e:
-        raise ConfigSchemaValidationError(
+        raise JSONSchemaLoadingError(
             f"Schema validation failed: Invalid schema file. Schema error: {e.message}"
         ) from e
 
@@ -594,11 +601,12 @@ def validate_config_with_schema(config: dict[str, Any], schema: str) -> None:
         ConfigSchemaValidationError: If validation fails with detailed error message
     """
     # Check if this is a Pydantic model specification (contains "::")
-    if ".py" in schema and "::" in schema:
+    if ".py" in schema:
         # Pydantic validation - should be .py file
+        print(pathlib.Path(schema).parts)
         module_path = schema.split("::", 1)[0]
         if not module_path.endswith(".py"):
-            raise ConfigSchemaValidationError(f"Pydantic schema must be a .py file, got: {module_path}")
+            raise PydanticConfigSchemaLoadingError(f"Pydantic schema must be a .py file, got: {module_path}")
         validate_config_with_pydantic(config, schema)
     else:
         validate_config_with_jsonschema(config, schema)
@@ -627,7 +635,10 @@ def _process_stdin_config(stdin_format: str | None, confs: list[dict[str, Any]])
 
 
 def _write_output(output: str, final_conf: dict[str, Any], merged_template: str) -> None:
-    """Write the final output based on the output format."""
+    """Write the final output based on the output format.
+    
+    Default is stdout, but can be a file path.
+    """
     if output == "config-json":
         print(json.dumps(final_conf, indent=2))
     elif output in ("config-yaml", "config-yml"):
@@ -677,6 +688,7 @@ def merge(
     # Custom functions
     log.debug(f"# functions {_functions=}")
     f = get_functions(_functions)
+    # Update Jinja2 global environment settings with the custom functions
     TESTS.update(f["tests"])
     FILTERS.update(f["filters"])
 
@@ -691,6 +703,7 @@ def merge(
     log.debug(f"# reduced confs: {json.dumps(final_conf, indent=2)}")
 
     # Validate final configuration against schema if provided
+    # Raise errors if invalid to break flow before templating
     if schema:
         validate_config_with_schema(final_conf, schema)
 
@@ -715,19 +728,23 @@ def main(_args: list[str] | None = None) -> None:
     parser: argparse.ArgumentParser = __argparse_factory(CLI_CONFIG)
     args: dict[str, Any] = __handle_args(parser, _args)
 
-    merge(
-        env=args["env"],
-        config=args["config"],
-        template=args["template"],
-        output=args["output"],
-        validate=args["validate"],
-        prefix=args["prefix"],
-        functions=args["functions"],
-        stdin_format=args["stdin_format"],
-        schema=args["schema"],
-    )
+    try:
+        merge(
+            env=args["env"],
+            config=args["config"],
+            template=args["template"],
+            output=args["output"],
+            validate=args["validate"],
+            prefix=args["prefix"],
+            functions=args["functions"],
+            stdin_format=args["stdin_format"],
+            schema=args["schema"],
+        )
+    except (ConfigSchemaValidationError, JSONSchemaLoadingError, PydanticConfigSchemaLoadingError) as e:
+        logging.error(e)
 
 
 if __name__ == "__main__":  # pragma: no cover
     logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
     main(sys.argv[1:])
+    

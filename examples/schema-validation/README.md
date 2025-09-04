@@ -9,19 +9,50 @@ Injinja now supports schema validation to ensure your final merged configuration
 
 ```bash
 # JSON Schema validation
-injinja -c config.yaml -t template.yml --schema schema.json
+injinja \
+-c config.yaml \
+-t template.yml \
+-s schema.json
 
 # Pydantic model validation  
-injinja -c config.yaml -t template.yml --schema models.py::ConfigModel
+injinja \
+-c config.yaml \
+-t template.yml \
+-s models.py::ConfigModel
 ```
 
 ## When Validation Occurs
+
+```mermaid
+flowchart LR
+
+    E[Environment 
+    Variables]:::existing
+
+    C[Config
+    Files]:::existing
+
+    S[Config Schema
+    Validation]:::new_feature
+
+    T[Templating]:::existing
+
+    O[Output]:::existing
+
+    E-->C
+    C-->S
+    S-->T
+    T-->O
+
+    classDef existing fill:#88aadd,stroke:#6666ee,stroke-width:2px,color:#fff
+    classDef new_feature fill:#99cc99,stroke:#2E5C8A,stroke-width:2px,color:#fff
+```
 
 Schema validation happens **after** all configuration merging but **before** template rendering:
 
 1. Collect DYNAMIC config (environment variables)
 2. Template and merge STATIC config files
-3. **→ VALIDATE merged configuration against schema** ←
+3. **VALIDATE merged configuration against schema**
 4. Apply final config to Jinja2 template
 
 This ensures that your configuration is valid before any templating begins, catching errors early with clear feedback.
@@ -55,21 +86,25 @@ Both approaches provide detailed, actionable error messages:
 
 This directory contains complete examples for both approaches:
 
-- [`README_jsonschema.md`](README_jsonschema.md) - JSON Schema examples
-- [`README_pydantic.md`](README_pydantic.md) - Pydantic model examples
 
 ## Advanced Usage
 
 ### Multiple Validation Levels
 
-You can create different validation rules for different environments:
+You can create different validation rules for different environments all from the onedefinition file:
 
 ```bash
 # Development - permissive validation
-injinja --schema models.py::DevConfigModel -c config.yaml -t template.yml
+injinja \
+    --schema models.py::DevConfigModel \
+    -c config.yaml \
+    -t template.yml
 
 # Production - strict validation  
-injinja --schema models.py::ProductionConfigModel -c config.yaml -t template.yml
+injinja \
+    --schema models.py::ProductionConfigModel \
+    -c config.yaml \
+    -t template.yml
 ```
 
 ### Schema File Formats
@@ -85,10 +120,15 @@ Use the built-in config export to debug before validation:
 
 ```bash
 # Export merged config to see what will be validated
-injinja -c config/**/*.yml -o config-json | jq '.'
+injinja \
+    -c 'config/**/*.yml' \
+    -o config-json | jq '.'
 
 # Then validate that exported config  
-injinja -c config/**/*.yml --schema schema.json -t template.yml
+injinja \
+    -c 'config/**/*.yml' \
+    --schema schema.json \
+    -t template.yml
 ```
 
 ## Best Practices
@@ -106,7 +146,9 @@ Schema validation is perfect for CI/CD pipelines:
 
 ```bash
 # In CI: Validate configurations before deployment
-injinja -c configs/prod/*.yml --schema schemas/production.json
+injinja \
+    -c 'configs/prod/*.yml' \
+    --schema schemas/production.json
 ```
 
 This catches configuration errors early, preventing deployment failures.

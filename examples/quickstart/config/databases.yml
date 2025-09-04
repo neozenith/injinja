@@ -1,0 +1,9 @@
+databases:
+  {{ prefix | default('') | upper }}{{env_name | upper}}_BRONZE:
+    description: Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.
+      
+  {{ prefix | default('') | upper }}{{env_name | upper}}_SILVER:
+    description: Primary data modelling area manmaged by dbt.
+
+  {{ prefix | default('') | upper }}{{env_name | upper}}_GOLD:
+    description: Curated and well modelled data. Read only access to BI tools.
