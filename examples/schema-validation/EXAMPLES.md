@@ -130,7 +130,7 @@ injinja \
 
 Using a `strict` Pydantic model with the `extra = 'forbid'` option. Being strict can help discover typos in config.
 
-The the default is to `ignore` extra data. 
+The the default is to `ignore` extra data.
 
 [_See Pydantic documentation_](https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.extra) for more information.
 
@@ -139,7 +139,7 @@ class StrictConfigModel(BaseModel):
     """Strict configuration model that doesn't allow extra fields."""
     app: AppConfig
     database: DatabaseConfig
-    
+
     class Config:
         """Pydantic model configuration."""
         # Forbid additional fields not defined in the model
@@ -270,4 +270,3 @@ injinja \
 ```
 
 **Expected**: ✅ Success (no validation performed)
-

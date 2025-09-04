@@ -112,7 +112,7 @@ CLI_CONFIG: dict[str, Any] = {
     "stdin-format": {  # New argument for stdin format
         "required": False,
         "default": None,
-        "short_flag": "-i", # i for IN
+        "short_flag": "-i",  # i for IN
         "choices": ["json", "yml", "yaml", "toml"],
         "help": "Format of the configuration data piped via stdin (json, yaml, toml). If set, injinja will attempt to read from stdin. eg cat config.json | python3 injinja.py --stdin-format json",
     },
@@ -465,12 +465,13 @@ def _load_pydantic_model(schema_spec: str) -> type[pydantic.BaseModel]:
     # Get the model class
     if not hasattr(module, class_name):
         available_classes = [
-            name for name in dir(module)
+            name
+            for name in dir(module)
             if not name.startswith("_")
             and isinstance(getattr(module, name), type)
             and getattr(module, name).__module__ == module.__name__  # Ensure it's defined in this module
-            and hasattr(getattr(module, name), '__bases__')  # Ensure it has bases
-            and any('BaseModel' in str(base) for base in getattr(module, name).__mro__)  # Check it is a Pydantic model
+            and hasattr(getattr(module, name), "__bases__")  # Ensure it has bases
+            and any("BaseModel" in str(base) for base in getattr(module, name).__mro__)  # Check it is a Pydantic model
         ]
         raise PydanticConfigSchemaLoadingError(
             f"Pydantic validation failed:\nClass '{class_name}' not found in '{module_path}'.\n"
@@ -583,9 +584,7 @@ def validate_config_with_jsonschema(config: dict[str, Any], schema_file: str) ->
         error_msg = "\n".join(error_details)
         raise ConfigSchemaValidationError(error_msg) from e
     except jsonschema.SchemaError as e:
-        raise JSONSchemaLoadingError(
-            f"Schema validation failed: Invalid schema file. Schema error: {e.message}"
-        ) from e
+        raise JSONSchemaLoadingError(f"Schema validation failed: Invalid schema file. Schema error: {e.message}") from e
 
 
 def validate_config_with_schema(config: dict[str, Any], schema: str) -> None:
@@ -636,7 +635,7 @@ def _process_stdin_config(stdin_format: str | None, confs: list[dict[str, Any]])
 
 def _write_output(output: str, final_conf: dict[str, Any], merged_template: str) -> None:
     """Write the final output based on the output format.
-    
+
     Default is stdout, but can be a file path.
     """
     if output == "config-json":
@@ -667,7 +666,7 @@ def merge(
     """Merge configuration files and Jinja2 template to produce a final configuration file.
 
     This is the programmatic interface to:
-    
+
     - Take the DYNAMIC configuration (environment variables) and
     - merge it with the STATIC configuration (files) to produce a _final complex configuration_.
     - This final configuration is then applied to your target Jinja2 template file.
@@ -747,4 +746,3 @@ def main(_args: list[str] | None = None) -> None:
 if __name__ == "__main__":  # pragma: no cover
     logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
     main(sys.argv[1:])
-    

@@ -1,13 +1,14 @@
 # Quickstart
 
-### **Step 1**: Config files with the power of `Jinja`
+## **Step 1**: Config files with the power of `Jinja`
 
 `config/databases.yml`
+
 ```yml
 databases:
   {{ prefix | default('') | upper }}{{env_name | upper}}_BRONZE:
     description: Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.
-      
+
   {{ prefix | default('') | upper }}{{env_name | upper}}_SILVER:
     description: Primary data modelling area manmaged by dbt.
 
@@ -18,6 +19,7 @@ databases:
 ### **Step 2**: Templating foundational files with your convention
 
 `sql/databases.sql.j2`
+
 ```sql
 -- Create Databases
 {% for database_name, database_properties in databases.items() -%}

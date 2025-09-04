@@ -7,9 +7,10 @@ uv run -m injinja --help
 """
 
 # Standard Library
-import sys
 import logging
-from .injinja import main, log_format, log_date_format, log_level
+import sys
+
+from .injinja import log_date_format, log_format, log_level, main
 
 if __name__ == "__main__":
     logging.basicConfig(level=log_level, format=log_format, datefmt=log_date_format)
