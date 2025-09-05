@@ -1,3 +1,6 @@
+---
+ title: Collections of Configs
+---
 flowchart TD
     output["`output_file / stdout `"]
     environment_variable["
@@ -12,12 +15,20 @@ flowchart TD
     override_file["base config file 
     -c override.yml"]
 
-    template_file["Jinja Template file"]
+    template_file["Jinja Template file
+    -t template.j2"]
 
-    environment_variable --> injinja.py
-    config_file --> injinja.py
-    glob_expression --> injinja.py
-    override_file --> injinja.py
-    template_file --> injinja.py
+    environment_variable --> injinja
+    config_file --> injinja
+    glob_expression --> injinja
+    override_file --> injinja
+    template_file --> injinja
 
-    injinja.py --> output
+    injinja --> output
+
+    
+    classDef focus fill:#9c9,stroke:#beb,stroke-width:2px,color:#fff
+    classDef other fill:#888,stroke:#999,stroke-width:2px,color:#ccc
+    
+    class config_file,glob_expression,override_file focus
+    class injinja,template_file,output,environment_variable other

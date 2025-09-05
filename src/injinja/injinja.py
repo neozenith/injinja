@@ -602,7 +602,6 @@ def validate_config_with_schema(config: dict[str, Any], schema: str) -> None:
     # Check if this is a Pydantic model specification (contains "::")
     if ".py" in schema:
         # Pydantic validation - should be .py file
-        print(pathlib.Path(schema).parts)
         module_path = schema.split("::", 1)[0]
         if not module_path.endswith(".py"):
             raise PydanticConfigSchemaLoadingError(f"Pydantic schema must be a .py file, got: {module_path}")

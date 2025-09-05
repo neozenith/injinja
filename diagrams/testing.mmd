@@ -1,3 +1,6 @@
+---
+title: Validating Output Against Known Expectations
+---
 flowchart TD
     output["`output_file / stdout `"]
     environment_variable["
@@ -14,15 +17,21 @@ flowchart TD
 
     template_file["Jinja Template file"]
     validate["Validation File
-    --validate expeactations-override.yml"]
+    --validate expectations-override.yml"]
     diff["Generate diff of output 
     and validation file"]
 
-    environment_variable --> injinja.py
-    config_file --> injinja.py
-    glob_expression --> injinja.py
-    override_file --> injinja.py
-    template_file --> injinja.py
-    validate --> injinja.py
-    injinja.py --> output
-    injinja.py --> diff
+    environment_variable --> injinja
+    config_file --> injinja
+    glob_expression --> injinja
+    override_file --> injinja
+    template_file --> injinja
+    validate --> injinja
+    injinja --> output
+    injinja --> diff
+
+    classDef focus fill:#9c9,stroke:#beb,stroke-width:2px,color:#fff
+    classDef other fill:#888,stroke:#999,stroke-width:2px,color:#ccc
+    
+    class validate,diff,injinja focus
+    class config_file,glob_expression,override_file,template_file,output,environment_variable other

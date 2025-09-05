@@ -2,6 +2,10 @@
 
 Injinja supports schema validation to ensure your final merged configuration meets specific requirements before templating. This catches configuration errors early with clear, actionable feedback.
 
+Your `Jinja` templates are always run as `StrictUndefined` already. Missing variables because of your template will already throw validation errors. So if you make a typo in your configuration, the template won't find the value and won't template.
+
+The Config Schema Validation adds extra rigour to validate your config BEFORE the final templating stage. This also llows you to use a variety of models to validate subsection of complex config hierarchies.
+
 ## Overview
 
 Schema validation occurs **after** all configuration merging but **before** template rendering:
@@ -37,98 +41,21 @@ Injinja supports two validation approaches:
 
 Both approaches are unified under a single `--schema` flag with automatic detection.
 
-### Quick Start
+## Quick Start
 
 ```bash
-# JSON Schema validation
-injinja --schema schema.json -c config.yaml -t template.yml
-
 # Pydantic model validation  
 injinja --schema models.py::ConfigModel -c config.yaml -t template.yml
+
+# JSON Schema validation
+injinja --schema schema.json -c config.yaml -t template.yml
 ```
-
-## JSON Schema Validation
-
-JSON Schema provides language-agnostic, declarative validation rules.
-
-### Creating a Schema
-
-Create a JSON Schema file defining your configuration structure:
-
-**`schema.json`:**
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required": ["app", "database"],
-  "properties": {
-    "app": {
-      "type": "object",
-      "required": ["name", "version", "environment"],
-      "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "version": { 
-          "type": "string", 
-          "pattern": "^\\d+\\.\\d+\\.\\d+$",
-          "description": "Semantic version format (e.g., 1.2.3)"
-        },
-        "environment": {
-          "type": "string",
-          "enum": ["development", "staging", "production"]
-        }
-      }
-    },
-    "database": {
-      "type": "object",
-      "required": ["host", "port", "name"],
-      "properties": {
-        "host": { "type": "string", "minLength": 1 },
-        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-        "name": { "type": "string", "minLength": 1 }
-      }
-    }
-  }
-}
-```
-
-### Usage
-
-```bash
-injinja \
-  -e env_name=production \
-  -c config.yaml \
-  -t template.yml \
-  --schema schema.json
-```
-
-### Error Example
-
-For invalid configurations, JSON Schema provides detailed error messages:
-
-```text
-ERROR:root:Schema validation failed:
-  Error at path: app -> version
-  Message: '1.2' does not match '^\\d+\\.\\d+\\.\\d+$'
-  Expected: ^\d+\.\d+\.\d+$
-  Actual value: 1.2
-  Full validation context:
-  Schema rule: pattern = ^\d+\.\d+\.\d+$
-```
-
-### File Formats
-
-JSON Schema files support multiple formats:
-
-- `.json` - JSON format
-- `.yaml`, `.yml` - YAML format  
-- `.toml` - TOML format
-
-All formats are loaded and parsed as JSON Schema definitions.
 
 ## Pydantic Model Validation
 
 Pydantic provides Python-native validation with full type safety and custom validation logic.
+
+The following examples are also available in the [`examples/schema-validation/`](https://github.com/neozenith/injinja/tree/main/examples/schema-validation) folder on the github repo.
 
 ### Creating Models
 
@@ -158,7 +85,7 @@ class ConfigModel(BaseModel):
     database: DatabaseConfig
 ```
 
-### Usage
+### Pydantic Model Usage
 
 ```bash
 injinja \
@@ -168,7 +95,7 @@ injinja \
   --schema models.py::ConfigModel
 ```
 
-### Error Example
+### Pydantic Model Error Example
 
 Pydantic provides structured error messages with field paths:
 
@@ -219,6 +146,85 @@ injinja --schema models.py::ConfigModel -c config.yaml -t template.yml
 injinja --schema models.py::ProductionConfigModel -c config.yaml -t template.yml
 ```
 
+## JSON Schema Validation
+
+JSON Schema provides language-agnostic, declarative validation rules.
+
+### Creating a Schema
+
+Create a JSON Schema file defining your configuration structure:
+
+**`schema.json`:**
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["app", "database"],
+  "properties": {
+    "app": {
+      "type": "object",
+      "required": ["name", "version", "environment"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { 
+          "type": "string", 
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version format (e.g., 1.2.3)"
+        },
+        "environment": {
+          "type": "string",
+          "enum": ["development", "staging", "production"]
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "required": ["host", "port", "name"],
+      "properties": {
+        "host": { "type": "string", "minLength": 1 },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
+```
+
+### JSON Schema Usage
+
+```bash
+injinja \
+  -e env_name=production \
+  -c config.yaml \
+  -t template.yml \
+  --schema schema.json
+```
+
+### JSON Schema Error Example
+
+For invalid configurations, JSON Schema provides detailed error messages:
+
+```text
+ERROR:root:Schema validation failed:
+  Error at path: app -> version
+  Message: '1.2' does not match '^\\d+\\.\\d+\\.\\d+$'
+  Expected: ^\d+\.\d+\.\d+$
+  Actual value: 1.2
+  Full validation context:
+  Schema rule: pattern = ^\d+\.\d+\.\d+$
+```
+
+### File Formats
+
+JSON Schema files support multiple formats:
+
+- `.json` - JSON format
+- `.yaml`, `.yml` - YAML format  
+- `.toml` - TOML format
+
+All formats are loaded and parsed as JSON Schema definitions.
+
 ## Choosing an Approach
 
 ### Use JSON Schema When
@@ -255,7 +261,6 @@ Schema validation is perfect for CI/CD pipelines:
 injinja \
   -c 'configs/prod/*.yml' \
   --schema schemas/production.json \
-  -t /dev/null  # Skip templating, just validate
 ```
 
 This catches configuration errors early, preventing deployment failures.

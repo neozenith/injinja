@@ -64,6 +64,7 @@ You should see the help message with all available options.
   - `jinja2` - Template engine
   - `PyYAML` - YAML parsing
   - `deepmerge` - Configuration merging
+  - `jsonschema` and `pydantic` - merged config schema validation checks.
 
 ## Next Steps
 

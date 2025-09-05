@@ -16,7 +16,7 @@ databases:
     description: Curated and well modelled data. Read only access to BI tools.
 ```
 
-### **Step 2**: Templating foundational files with your convention
+### **Step 2**: Templating foundational files with your conventions
 
 `sql/databases.sql.j2`
 
@@ -59,10 +59,12 @@ CREATE OR ALTER DATABASE PROD_GOLD
 # Inject normalised git branch prefix
 uvx injinja \
 -e env_name=dev \
--e prefix="_$(git symbolic-ref --short HEAD | sed 's/\//_/g')" \ 
+-e prefix="$(git symbolic-ref --short HEAD | sed 's/\//_/g')__" \ 
 -c 'config/*' \
 -t sql/databases.sql.j2
 ```
+
+Assuming our git branch was `JIRA-123/incremental-model`:
 
 ```sql
 -- Create Databases

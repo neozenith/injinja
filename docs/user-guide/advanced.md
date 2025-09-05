@@ -153,7 +153,10 @@ environments:
   - name: prod
     region: us-east-1
     replicas: 5
+```
 
+```yaml
+# template.yml
 {% for env in environments %}
 ---
 # {{ env.name }}-{{ env.region }}
@@ -411,27 +414,6 @@ injinja -c 'config/base/*.yml' -c 'config/env/prod.yml' -c 'config/overrides/loc
 injinja -c 'config/**/*.yml'
 ```
 
-### Template Optimization
-
-1. **Minimize complex logic** in templates
-2. **Use configuration preprocessing** for complex calculations
-3. **Cache intermediate results** in configuration
-
-```yaml
-# Precompute complex values in config
-computed:
-  total_memory: {{ (WORKERS | default(4) | int) * (MEMORY_PER_WORKER | default(512) | int) }}
-  connection_string: "{{ DB_TYPE }}://{{ DB_USER }}:{{ DB_PASS }}@{{ DB_HOST }}/{{ DB_NAME }}"
-
-# Use in template
-database:
-  connection: {{ computed.connection_string }}
-
-workers:
-  count: {{ WORKERS | default(4) }}
-  total_memory: {{ computed.total_memory }}MB
-```
-
 ## Troubleshooting
 
 ### Common Issues
@@ -457,6 +439,8 @@ database_url: {{ DATABASE_URL }}
 # Order matters - later configs override earlier ones
 injinja -c base.yml -c environment.yml -c local-overrides.yml
 ```
+
+> **WARNING**: An empty file will be treated as an empty dictionary `{}` and will authoritatively remove all root keys already merged.
 
 1. **Template Syntax Issues**: Use debug mode to see parsed configuration
 

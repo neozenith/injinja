@@ -13,12 +13,20 @@
 
 ## Features
 
-- **Ultra-simple:** The implementation is a single stand-alone python file. Take a copy of the file or `pip install`. Choice is yours.
+- **Recursive Deep Merge:** Sick of scrolling big fat mega config files? Would you rather have organised folders of smaller configs that act like they are part of the same big config? We recursively deep merge your config.
+- **Powerful:** Any of your config files are now empowered with the full programming capabilities of [`Jinja`](https://jinja.palletsprojects.com/en/stable/) templating engine for better parametrising the one set of config files.
 - **Flexible:** You design your configuration schema yourself in any of JSON, YAML or TOML.
-- **Deep Merge:** Finally split those big mega config files into smaller more manageable ones in a folder hierarchy. We recursively merge them like they are the one mega file.
-- **Powerful:** Any of your config files are now empowered with the full programming capabilities of [`Jinja`](https://jinja.palletsprojects.com/en/stable/) templating engine.
-- **Schema Validation:** Validate your merged configuration against JSON Schema or Pydantic models before templating. Catch errors early with detailed, actionable feedback.
-- **Platform Engineering:** Separate your projects into _Extensible Code_ driven by _Flexible Config_ to allow _"Drive By Contributors"_. Edit one YAML in Github Browser to start a PR to spin up new Snowflake Databases or Terraform modules.
+- **Enabling:** Separate your project config out to allow _"Drive By Contributors"_. Even non-technical colleagues can edit a text file in a browser to raise a PR.
+- **Nothing Implicit:** By design nothing is implicit and every input is explicit. We prefer powerful tools rather than "magic" tools.
+
+## Simplified Architecture
+
+![Overview Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/overview.png?raw=true)
+
+1. **Dynamic Configuration**: Environment variables and CLI flags provide runtime values
+2. **Static Configuration**: YAML/JSON/TOML files that can themselves be Jinja templates
+3. **Schema Validation**: Validate merged configuration against schemas before templating
+4. **Template Rendering**: Apply the validated configuration to your target template
 
 ## Quick Example
 
@@ -81,10 +89,12 @@ CREATE OR ALTER DATABASE PROD_GOLD
 # Inject normalised git branch prefix
 uvx injinja \
 -e env_name=dev \
--e prefix="_$(git symbolic-ref --short HEAD | sed 's/\//_/g')" \ 
+-e prefix="$(git symbolic-ref --short HEAD | sed 's/\//_/g')__" \ 
 -c 'config/*' \
 -t sql/databases.sql.j2
 ```
+
+Assuming our git branch was `JIRA-123/incremental-model`:
 
 ```sql
 -- Create Databases
@@ -107,15 +117,6 @@ uvx injinja ... | snow sql -i
 ### **Summary**
 
 Now you can see how you can have enhanced configuration which stays as the central source of truth for the structure of your environments and then parametrise as need be.
-
-## Simplified Architecture
-
-![Overview Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/overview.png?raw=true)
-
-1. **Dynamic Configuration**: Environment variables and CLI flags provide runtime values
-2. **Static Configuration**: YAML/JSON/TOML files that can themselves be Jinja templates
-3. **Schema Validation**: Validate merged configuration against schemas before templating
-4. **Template Rendering**: Apply the validated configuration to your target template
 
 ## Next Steps
 

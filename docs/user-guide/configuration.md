@@ -231,25 +231,6 @@ redis:
 {% endif %}
 ```
 
-### Configuration Validation
-
-Use defaults and validation in templates:
-
-```yaml
-# config.yml
-app:
-  name: "{{ APP_NAME | default('unnamed-app') }}"
-  port: {{ APP_PORT | default(8080) | int }}
-
-{% if not DATABASE_URL %}
-{{ raise_error('DATABASE_URL environment variable is required') }}
-{% endif %}
-
-database:
-  url: "{{ DATABASE_URL }}"
-  pool_size: {{ DB_POOL_SIZE | default(10) | int }}
-```
-
 ### Dynamic Lists and Iterations
 
 Generate dynamic configuration structures:
