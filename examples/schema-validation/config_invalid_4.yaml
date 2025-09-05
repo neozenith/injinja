@@ -1,0 +1,12 @@
+app:
+  name: "my-awesome-app"
+  version: "1.2.3"
+  environment: "staging"
+
+database:
+  host: "localhost"
+  port: 5432
+  # Missing required field: name
+
+features:
+  feature_a: true

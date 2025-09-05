@@ -63,6 +63,7 @@ nav:
     - Installation: user-guide/installation.md
     - Quick Start: user-guide/quick-start.md
     - Configuration: user-guide/configuration.md
+    - Schema Validation: user-guide/schema-validation.md
     - Advanced Usage: user-guide/advanced.md
   - API Reference:
     - Core Module: api/injinja.md

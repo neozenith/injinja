@@ -1,0 +1,17 @@
+flowchart LR
+    E[Environment 
+    Variables]:::existing
+    C[Config
+    Files]:::existing
+    S[Config Schema
+    Validation]:::new_feature
+    T[Templating]:::existing
+    O[Output]:::existing
+
+    E-->C
+    C-->S
+    S-->T
+    T-->O
+
+    classDef new_feature fill:#9c9,stroke:#beb,stroke-width:2px,color:#fff
+    classDef existing fill:#888,stroke:#999,stroke-width:2px,color:#ccc

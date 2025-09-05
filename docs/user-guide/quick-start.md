@@ -6,87 +6,92 @@ This guide will get you up and running with Injinja in minutes.
 
 Injinja follows a simple pattern: **Environment → Config → Template → Output**
 
-```bash
+```sh
 injinja -e KEY=VALUE -c config.yml -t template.j2
 ```
 
-## Your First Template
+## **Step 1**: Config files with the power of `Jinja`
 
-Let's create a simple example to demonstrate Injinja's capabilities.
+`config/databases.yml`
 
-### 1. Create a Configuration File
+```yml
+databases:
+  {{ prefix | default('') | upper }}{{env_name | upper}}_BRONZE:
+    description: Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.
 
-Create `config.yml`:
+  {{ prefix | default('') | upper }}{{env_name | upper}}_SILVER:
+    description: Primary data modelling area manmaged by dbt.
 
-```yaml
-# config.yml
-app:
-  name: "{{ app_name | default('MyApp') }}"
-  version: "{{ app_version | default('1.0.0') }}"
-  environment: "{{ env | default('development') }}"
+  {{ prefix | default('') | upper }}{{env_name | upper}}_GOLD:
+    description: Curated and well modelled data. Read only access to BI tools.
 ```
 
-and `db.yml`:
+### **Step 2**: Templating foundational files with your conventions
 
-```yaml
-database:
-  host: "{{ db_host | default('localhost') }}"
-  port: 5432
-  name: "{{ app_name | lower }}_{{ env | default('development') }}"
+`sql/databases.sql.j2`
+
+```sql
+-- Create Databases
+{% for database_name, database_properties in databases.items() -%}
+CREATE OR ALTER DATABASE {{ database_name }}
+    {%- if database_properties.description is defined %}
+    WITH COMMENT = '{{ database_properties.description }}'
+    {%- endif -%}
+    ;
+{% endfor %}
 ```
 
-### 2. Create a Template
+### **Step 3**: One config for every environment (and branch)
 
-Create `app.conf.j2`:
+#### **3a** _Generate PROD SQL statements_
 
-```jinja2
-# app.conf.j2
-[app]
-name = {{ app.name }}
-version = {{ app.version }}
-environment = {{ app.environment }}
-
-[database]
-host = {{ database.host }}
-port = {{ database.port }}
-database = {{ database.name }}
-
-# Generated on {{ ansible_date_time.iso8601 | default('now') }}
+```sh
+# Template SQL DDL with dynamic environment variables and static config
+uvx injinja \
+-e env_name=prod \
+-c 'config/*' \
+-t sql/databases.sql.j2
 ```
 
-### 3. Run Injinja
-
-```bash
-# Basic usage with environment variables
-injinja \
--e app_name=MyAwesomeApp \
--e app_version=2.1.0 \
--e env=production \
--e db_host=prod.example.com \
--c config.yml \
--t app.conf.j2
+```sql
+-- Create Databases
+CREATE OR ALTER DATABASE PROD_BRONZE
+    WITH COMMENT = 'Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.';
+CREATE OR ALTER DATABASE PROD_SILVER
+    WITH COMMENT = 'Primary data modelling area manmaged by dbt.';
+CREATE OR ALTER DATABASE PROD_GOLD
+    WITH COMMENT = 'Curated and well modelled data. Read only access to BI tools.';
 ```
 
-### 4. Output
+#### **3b** _Generate DEV Databases per branch_
 
-```ini
-[app]
-name = MyAwesomeApp
-version = 2.1.0
-environment = production
+```sh
+# Inject normalised git branch prefix
+uvx injinja \
+-e env_name=dev \
+-e prefix="$(git symbolic-ref --short HEAD | sed 's/\//_/g')__" \ 
+-c 'config/*' \
+-t sql/databases.sql.j2
+```
 
-[database]
-host = prod.example.com
-port = 5432
-database = myawesomeapp_production
+Assuming our git branch was `JIRA-123/incremental-model`:
+
+```sql
+-- Create Databases
+CREATE OR ALTER DATABASE JIRA-123_INCREMENTAL-MODEL__DEV_BRONZE
+    WITH COMMENT = 'Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.';
+CREATE OR ALTER DATABASE JIRA-123_INCREMENTAL-MODEL__DEV_SILVER
+    WITH COMMENT = 'Primary data modelling area manmaged by dbt.';
+CREATE OR ALTER DATABASE JIRA-123_INCREMENTAL-MODEL__DEV_GOLD
+    WITH COMMENT = 'Curated and well modelled data. Read only access to BI tools.';
 ```
 
 ## Key Concepts
 
 ### Two-Step Templating
 
-1. **Step 1**: Environment variables template the configuration file
-2. **Step 2**: The templated configuration is applied to your final template
+- **Step 1**: Environment variables template the configuration file
+- **Step 2**: The templated configuration is applied to your final template
 
 This allows your configuration files to be dynamic and environment-aware.
 
@@ -94,30 +99,59 @@ This allows your configuration files to be dynamic and environment-aware.
 
 Multiple configuration files are deep-merged:
 
-```bash
-# Later files override earlier ones
-injinja -c base.yml -c environment.yml -c overrides.yml -t template.j2
+```sh
+# Later files override/extend earlier ones
+injinja -c databases.yml -c extends.yml -t template.j2
 ```
+
+For example if `extends.yml` was:
+
+```yaml
+databases:
+  {{ prefix | default('') | upper }}{{env_name | upper}}_META_ANALYTICS:
+    description: Data models for the platform team to analyse the data platform health.
+```
+
+Our earlier example would results in a final config like:
+
+```yaml
+databases:
+  {{ prefix | default('') | upper }}{{env_name | upper}}_BRONZE:
+    description: Raw ingestion layer of our medallion architecture. Read only access for dbt. Write only for ingestion tools.
+
+  {{ prefix | default('') | upper }}{{env_name | upper}}_SILVER:
+    description: Primary data modelling area manmaged by dbt.
+
+  {{ prefix | default('') | upper }}{{env_name | upper}}_GOLD:
+    description: Curated and well modelled data. Read only access to BI tools.
+
+  {{ prefix | default('') | upper }}{{env_name | upper}}_META_ANALYTICS:
+    description: Data models for the platform team to analyse the data platform health.
+```
+
+The `databases` key already exists in both so we recurse down.
+The `_META_ANALYTICS` key does not exist yet so we extend the config.
 
 ### Glob Patterns
 
 Use glob patterns to include multiple config files:
 
-```bash
+```sh
 injinja -c 'config/**/*.yml' -t template.j2
 ```
 
+> **NOTE**: enclose glob patterns in single quotes to prevent early expansion of the glob patterns from your shell.
+
 ## Environment Variables
 
-### Direct Key-Value Pairs
-
-```bash
-injinja -e DATABASE_URL=postgres://... -e DEBUG=true
-```
+- The `--env` flag will check if the string value is a file first and treat it like a `.env` file.
+- If it is not a file, it will then assume the value is in the form `KEY=VALUE`.
+- The `--prefix` option allows you to grab ALL environment variables you have namespaced with a prefix.
 
 ### Environment File
 
 Create `.env`:
+
 ```bash
 DATABASE_URL=postgres://localhost/myapp
 DEBUG=true
@@ -126,6 +160,12 @@ API_KEY=secret123
 
 ```bash
 injinja -e .env -c config.yml -t template.j2
+```
+
+### Direct Key-Value Pairs
+
+```bash
+injinja -e DATABASE_URL=postgres://... -e DEBUG=true
 ```
 
 ### Prefix Filtering
@@ -157,56 +197,6 @@ injinja -c config.yml -o config-json
 
 # Output as YAML
 injinja -c config.yml -o config-yaml
-```
-
-## Real-World Example
-
-Here's a practical example for generating database migration scripts:
-
-**Environment:**
-```bash
-export ENV=production
-export DB_HOST=prod-db.example.com
-export SCHEMA_VERSION=v2.1
-```
-
-**Config (`db-config.yml`):**
-```yaml
-database:
-  host: "{{ ENV == 'production' and DB_HOST or 'localhost' }}"
-  schema_version: "{{ SCHEMA_VERSION }}"
-  tables:
-    users:
-      columns:
-        - name: id
-          type: bigserial
-        - name: email
-          type: varchar(255)
-    products:
-      columns:
-        - name: id
-          type: bigserial
-        - name: name
-          type: varchar(100)
-```
-
-**Template (`migration.sql.j2`):**
-```sql
--- Migration for {{ database.schema_version }}
--- Target: {{ database.host }}
-
-{% for table_name, table_config in database.tables.items() %}
-CREATE TABLE IF NOT EXISTS {{ table_name }} (
-  {% for column in table_config.columns -%}
-  {{ column.name }} {{ column.type }}{{ "," if not loop.last }}
-  {% endfor %}
-);
-{% endfor %}
-```
-
-**Command:**
-```bash
-injinja --prefix ENV,DB_HOST,SCHEMA_VERSION -c db-config.yml -t migration.sql.j2 -o migration_v2.1.sql
 ```
 
 ## Next Steps

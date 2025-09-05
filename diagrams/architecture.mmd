@@ -1,3 +1,6 @@
+---
+ title: Injinja Architecture
+---
 graph LR
     subgraph Dynamic_Configuration
         env_flags[--env KEY=VALUE]
@@ -41,7 +44,14 @@ graph LR
         conf_glob_expanded --> conf_list
         conf_override --> conf_list
     end
-    subgraph Merged_Configuration
+    subgraph "Schema Validation [Optional]"
+        schema_file[--schema FILENAME]
+        json_schema[schema.json]
+        pydantic_schema[schema.py::Model]
+        pydantic_schema --> schema_file
+        json_schema --> schema_file
+    end
+    subgraph "Merged Configuration"
         all_conf["all_conf_templated: 
         list[dict[any, any]]"]
         merged_conf
@@ -50,21 +60,19 @@ graph LR
         all_conf -->|deepmerge.always_merger| merged_conf
     end
     subgraph Template
+        schema_file -->|"validate_config_with_schema"| merged_conf
         merged_conf --> merged_output
+        template_file[--template FILENAME]
         template_file --> merged_output
     end
-    subgraph Output
-        stdout
-        config-json
-        config-yaml
-        output_file
+    subgraph Outputs
+        stdout["--output stdout (default)"]
+        output_file[--output FILENAME]
         merged_output --> stdout
-        merged_output --> config-json
-        merged_output --> config-yaml
         merged_output --> output_file
     end
-    subgraph Validation
-        validation_file
+    subgraph "Validation [Optional]"
+        validation_file[--validate FILENAME]
 
         merged_output --> diff_output
         validation_file --> diff_output

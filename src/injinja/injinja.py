@@ -6,7 +6,9 @@
 #   "PyYAML",
 #   "deepmerge",
 #   "types-PyYAML",
-#   "types-jinja2"
+#   "types-jinja2",
+#   "jsonschema",
+#   "pydantic"
 # ]
 # ///
 # https://docs.astral.sh/uv/guides/scripts/#creating-a-python-script
@@ -27,16 +29,37 @@ import shlex
 import sys
 import textwrap
 import tomllib
-from typing import Any
+from typing import Any, cast
 
 # Third Party
 import jinja2
+import jsonschema
+import pydantic
 import yaml
 from deepmerge import always_merger
 from jinja2.filters import FILTERS
 from jinja2.tests import TESTS
 
 log = logging.getLogger(__name__)
+
+
+class PydanticConfigSchemaLoadingError(Exception):
+    """Custom exception for Pydantic schema loading errors."""
+
+    pass
+
+
+class JSONSchemaLoadingError(Exception):
+    """Custom exception for JSON schema loading errors."""
+
+    pass
+
+
+class ConfigSchemaValidationError(Exception):
+    """Custom exception for configuration validation errors."""
+
+    pass
+
 
 DEBUG_MODE = False
 TRACEBACK_SUPPRESSIONS = [jinja2]
@@ -89,8 +112,14 @@ CLI_CONFIG: dict[str, Any] = {
     "stdin-format": {  # New argument for stdin format
         "required": False,
         "default": None,
+        "short_flag": "-i",  # i for IN
         "choices": ["json", "yml", "yaml", "toml"],
         "help": "Format of the configuration data piped via stdin (json, yaml, toml). If set, injinja will attempt to read from stdin. eg cat config.json | python3 injinja.py --stdin-format json",
+    },
+    "schema": {  # Schema validation file
+        "required": False,
+        "default": None,
+        "help": "Schema file to validate the final merged configuration. JSON Schema files (mostly .json but also supported .yml, .toml) or Pydantic models (schema_models.py::MyModel).",
     },
 }
 
@@ -123,18 +152,38 @@ def __argparse_factory(config: dict[str, Any]) -> argparse.ArgumentParser:
     for flag, flag_kwargs in config.items():
         # Automatically handle long and short case for flags
         lowered_flag = flag.lower()
-        short_flag = f"-{lowered_flag[0]}"
         long_flag = f"--{lowered_flag}"
+
+        # Handle custom short flags or generate default
+        if isinstance(flag_kwargs, dict) and "short_flag" in flag_kwargs:
+            custom_short_flag = flag_kwargs.pop("short_flag")  # Remove from kwargs
+            if custom_short_flag:  # If not None/empty, use custom short flag
+                short_flag = custom_short_flag
+                use_short_flag = True
+            else:  # If None/empty, don't use a short flag
+                use_short_flag = False
+        else:
+            short_flag = f"-{lowered_flag[0]}"
+            use_short_flag = True
 
         # If the value of the config dict is a dictionary then unpack it like standard kwargs for add_argument
         # Otherwise assume the value is a simple default value like a string.
         if isinstance(flag_kwargs, dict):
-            parser.add_argument(short_flag, long_flag, **flag_kwargs)
+            if use_short_flag:
+                parser.add_argument(short_flag, long_flag, **flag_kwargs)
+            else:
+                parser.add_argument(long_flag, **flag_kwargs)
         elif isinstance(flag_kwargs, bool):
             store_type = "store_true" if flag_kwargs else "store_false"
-            parser.add_argument(short_flag, long_flag, action=store_type)
+            if use_short_flag:
+                parser.add_argument(short_flag, long_flag, action=store_type)
+            else:
+                parser.add_argument(long_flag, action=store_type)
         else:
-            parser.add_argument(short_flag, long_flag, default=flag_kwargs)
+            if use_short_flag:
+                parser.add_argument(short_flag, long_flag, default=flag_kwargs)
+            else:
+                parser.add_argument(long_flag, default=flag_kwargs)
     return parser
 
 
@@ -377,61 +426,192 @@ def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 ########################################################################################
-# Main
+# Schema Validation
 ########################################################################################
-def merge(
-    env: list[str] | None = None,
-    config: list[str] | None = None,
-    template: str = "",
-    output: str = "stdout",
-    validate: str | None = None,
-    prefix: list[str] | None = None,
-    functions: list[str] | None = None,
-    stdin_format: str | None = None,  # Added stdin_format parameter
-) -> tuple[str, str | None]:
-    """Merge configuration files and Jinja2 template to produce a final configuration file.
 
-    This is the programmatic interface to:
-    
-    - Take the DYNAMIC configuration (environment variables) and
-    - merge it with the STATIC configuration (files) to produce a _final complex configuration_.
-    - This final configuration is then applied to your target Jinja2 template file.
 
-    OPTIONALLY:
-    - Can take custom functions for use within the Jinja2 template engine.
-    - Can take a validation file to assist with checking expected templated output against a known file.
+def _load_pydantic_model(schema_spec: str) -> type[pydantic.BaseModel]:
+    """Load a Pydantic model from a module specification.
+
+    Args:
+        schema_spec: Pydantic model specification in format "module.py::ModelClass"
+
+    Returns:
+        The Pydantic model class
+
+    Raises:
+        PydanticConfigSchemaLoadingError: If the model cannot be loaded
     """
-    # Defaults to empty lists
-    # Setting mutables as defaults is not recommended.
-    _env: list[str] = env or []
-    _config: list[str] = config or []
-    _prefix: list[str] = prefix or []
-    _functions: list[str] = functions or []
-    # log.debug(_config)
-    # Dymamic configuration
-    merged_env: dict[str, str] = get_environment_variables(env_flags=_env, prefixes_list=_prefix)
-    # log.debug(json.dumps(merged_env, indent=2))
+    # Parse the module and class specification
+    if ".py" not in schema_spec or "::" not in schema_spec:
+        raise PydanticConfigSchemaLoadingError(
+            f"Pydantic validation failed:\nInvalid format '{schema_spec}'.\nExpected format: 'module.py::ModelClass'"
+        )
 
-    # Custom functions
-    log.debug(f"# functions {_functions=}")
-    f = get_functions(_functions)
+    module_path, class_name = schema_spec.split("::", 1)
+    module_file = pathlib.Path(module_path)
 
-    # Update global Jinja2 filters and tests
-    # Settings these before an environment is created will make them available to all templates
-    TESTS.update(f["tests"])
-    FILTERS.update(f["filters"])
-    # log.debug(f"# {TESTS=}")
-    # log.debug(f"# {FILTERS=}")
+    if not module_file.exists():
+        raise PydanticConfigSchemaLoadingError(f"Pydantic validation failed: Module file '{module_path}' not found.")
 
-    # Static configuration
-    confs = map_env_to_confs(config_files_or_globs=_config, env=merged_env)
-    log.debug(f"# confs: {json.dumps(confs, indent=2)}")
+    # Import the module dynamically
+    spec = importlib.util.spec_from_file_location("schema_module", module_file)
+    if spec is None or spec.loader is None:
+        raise PydanticConfigSchemaLoadingError(f"Pydantic validation failed: Could not load module '{module_path}'")
 
-    # Configuration from stdin
-    # TODO: This is a configuration source is kind of dynamic like environment variables
-    # and yet it is being treated like static config, which should be templated.
-    # The main use case is chaining injinja with other tools like jq or yq.
-    # Eg python3 injinja.py -c config/**/*.yml -o config-json | jq '.tables[] | keys' | python3 injinja.py --stdin-format json -t template.sql -o finalfile.sql
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    # Get the model class
+    if not hasattr(module, class_name):
+        available_classes = [
+            name
+            for name in dir(module)
+            if not name.startswith("_")
+            and isinstance(getattr(module, name), type)
+            and getattr(module, name).__module__ == module.__name__  # Ensure it's defined in this module
+            and hasattr(getattr(module, name), "__bases__")  # Ensure it has bases
+            and any("BaseModel" in str(base) for base in getattr(module, name).__mro__)  # Check it is a Pydantic model
+        ]
+        raise PydanticConfigSchemaLoadingError(
+            f"Pydantic validation failed:\nClass '{class_name}' not found in '{module_path}'.\n"
+            f"Available classes:\n- {'\n- '.join(available_classes)}"
+        )
+
+    model_class = getattr(module, class_name)
+
+    # Verify it's a Pydantic model
+    if not (isinstance(model_class, type) and issubclass(model_class, pydantic.BaseModel)):
+        raise PydanticConfigSchemaLoadingError(
+            f"Pydantic validation failed: '{class_name}' is not a Pydantic BaseModel"
+        )
+
+    return model_class
+
+
+def validate_config_with_pydantic(config: dict[str, Any], schema_spec: str) -> None:
+    """Validate the final merged configuration against a Pydantic model.
+
+    Args:
+        config: The final merged configuration dictionary
+        schema_spec: Pydantic model specification in format "module.py::ModelClass"
+
+    Raises:
+        ConfigSchemaValidationError: If validation fails with detailed error message
+    """
+    try:
+        model_class = _load_pydantic_model(schema_spec)
+
+        # Validate the configuration
+        model_class.model_validate(config)
+        log.debug(f"✅ Configuration successfully validated against Pydantic model '{schema_spec}'")
+
+    except pydantic.ValidationError as e:
+        # Unpack Pydantic validation errors for better formatted output.
+        error_details = ["Pydantic validation failed:"]
+        error_details.append(f"  Model: {schema_spec}")
+        for error in e.errors():
+            location = " -> ".join(str(loc) for loc in error["loc"]) if error["loc"] else "root"
+            error_details.append(f"    Error at path: {location}")
+            error_details.append(f"    Message: {error['msg']}")
+            if "input" in error:
+                error_details.append(f"    Input value: {error['input']}")
+            error_details.append("")  # Blank line between errors
+        raise ConfigSchemaValidationError("\n".join(error_details)) from e
+
+
+def _load_json_schema(schema_file: str) -> dict[str, Any]:
+    """Load a JSON schema from a file.
+
+    Args:
+        schema_file: Path to the JSON Schema file
+
+    Returns:
+        The loaded schema as a dictionary
+
+    Raises:
+        JSONSchemaLoadingError: If the schema file cannot be loaded
+    """
+    schema_path = pathlib.Path(schema_file)
+    if not schema_path.exists():
+        raise JSONSchemaLoadingError(f"Schema validation failed: Schema file '{schema_file}' not found.")
+
+    # Parse schema file (support JSON only for JSON Schema spec compliance)
+    try:
+        if schema_file.lower().endswith(".json"):
+            return cast("dict[str, Any]", json.loads(schema_path.read_text()))
+        else:
+            raise JSONSchemaLoadingError(
+                f"Schema validation failed: JSON Schema must be a .json file, got: {schema_file}"
+            )
+    except json.JSONDecodeError as e:
+        raise JSONSchemaLoadingError(
+            f"Schema validation failed: Invalid JSON in schema file '{schema_file}': {e}"
+        ) from e
+    except Exception as e:
+        raise JSONSchemaLoadingError(f"Schema validation failed: Error reading schema file '{schema_file}': {e}") from e
+
+
+def validate_config_with_jsonschema(config: dict[str, Any], schema_file: str) -> None:
+    """Validate the final merged configuration against a JSON Schema.
+
+    Args:
+        config: The final merged configuration dictionary
+        schema_file: Path to the JSON Schema file
+
+    Raises:
+        ConfigValidationError: If validation fails with detailed error message
+    """
+    try:
+        schema = _load_json_schema(schema_file)
+
+        # Validate the configuration
+        jsonschema.validate(instance=config, schema=schema)
+        log.debug(f"✅ Configuration successfully validated against schema '{schema_file}'")
+
+    except jsonschema.ValidationError as e:
+        error_details = ["Schema validation failed:"]
+        error_details.append(
+            f"  Error at path: {' -> '.join(str(p) for p in e.absolute_path) if e.absolute_path else 'root'}"
+        )
+        error_details.append(f"  Message: {e.message}")
+        if e.validator_value:
+            error_details.append(f"  Expected: {e.validator_value}")
+        if hasattr(e, "instance") and e.instance is not None:
+            error_details.append(f"  Actual value: {e.instance}")
+        error_details.append("  Full validation context:")
+        error_details.append(f"  Schema rule: {e.validator} = {e.validator_value}")
+        error_msg = "\n".join(error_details)
+        raise ConfigSchemaValidationError(error_msg) from e
+    except jsonschema.SchemaError as e:
+        raise JSONSchemaLoadingError(f"Schema validation failed: Invalid schema file. Schema error: {e.message}") from e
+
+
+def validate_config_with_schema(config: dict[str, Any], schema: str) -> None:
+    """Validate the final merged configuration against a schema.
+
+    Determines whether to use JSON Schema or Pydantic validation based on the schema format.
+
+    Args:
+        config: The final merged configuration dictionary
+        schema: Either a path to a JSON Schema file or a Pydantic model spec (module.py::Model)
+
+    Raises:
+        ConfigSchemaValidationError: If validation fails with detailed error message
+    """
+    # Check if this is a Pydantic model specification (contains "::")
+    if ".py" in schema:
+        # Pydantic validation - should be .py file
+        module_path = schema.split("::", 1)[0]
+        if not module_path.endswith(".py"):
+            raise PydanticConfigSchemaLoadingError(f"Pydantic schema must be a .py file, got: {module_path}")
+        validate_config_with_pydantic(config, schema)
+    else:
+        validate_config_with_jsonschema(config, schema)
+
+
+def _process_stdin_config(stdin_format: str | None, confs: list[dict[str, Any]]) -> None:
+    """Process configuration from stdin if provided."""
     if stdin_format and not sys.stdin.isatty():
         log.debug(f"# Reading config from stdin with format: {stdin_format}")
         stdin_content = sys.stdin.read()
@@ -451,31 +631,92 @@ def merge(
     elif stdin_format and sys.stdin.isatty():
         log.debug(f"# --stdin-format '{stdin_format}' provided, but no data piped to stdin.")
 
+
+def _write_output(output: str, final_conf: dict[str, Any], merged_template: str) -> None:
+    """Write the final output based on the output format.
+
+    Default is stdout, but can be a file path.
+    """
+    if output == "config-json":
+        print(json.dumps(final_conf, indent=2))
+    elif output in ("config-yaml", "config-yml"):
+        print(yaml.dump(final_conf, indent=2))
+    elif output == "stdout":
+        print(merged_template)
+    else:
+        pathlib.Path(output).parent.mkdir(parents=True, exist_ok=True)
+        pathlib.Path(output).write_text(merged_template)
+
+
+########################################################################################
+# Main
+########################################################################################
+def merge(
+    env: list[str] | None = None,
+    config: list[str] | None = None,
+    template: str = "",
+    output: str = "stdout",
+    validate: str | None = None,
+    prefix: list[str] | None = None,
+    functions: list[str] | None = None,
+    stdin_format: str | None = None,  # Added stdin_format parameter
+    schema: str | None = None,  # Added schema parameter
+) -> tuple[str, str | None]:
+    """Merge configuration files and Jinja2 template to produce a final configuration file.
+
+    This is the programmatic interface to:
+
+    - Take the DYNAMIC configuration (environment variables) and
+    - merge it with the STATIC configuration (files) to produce a _final complex configuration_.
+    - This final configuration is then applied to your target Jinja2 template file.
+
+    OPTIONALLY:
+    - Can take custom functions for use within the Jinja2 template engine.
+    - Can take a validation file to assist with checking expected templated output against a known file.
+    """
+    # Defaults to empty lists (setting mutables as defaults is not recommended)
+    _env: list[str] = env or []
+    _config: list[str] = config or []
+    _prefix: list[str] = prefix or []
+    _functions: list[str] = functions or []
+
+    # Dynamic configuration
+    merged_env: dict[str, str] = get_environment_variables(env_flags=_env, prefixes_list=_prefix)
+
+    # Custom functions
+    log.debug(f"# functions {_functions=}")
+    f = get_functions(_functions)
+    # Update Jinja2 global environment settings with the custom functions
+    TESTS.update(f["tests"])
+    FILTERS.update(f["filters"])
+
+    # Static configuration
+    confs = map_env_to_confs(config_files_or_globs=_config, env=merged_env)
+    log.debug(f"# confs: {json.dumps(confs, indent=2)}")
+
+    # Process stdin configuration if provided
+    _process_stdin_config(stdin_format, confs)
+
     final_conf = reduce_confs(confs)
     log.debug(f"# reduced confs: {json.dumps(final_conf, indent=2)}")
 
-    merged_template = merge_template(template, final_conf) if template else ""
+    # Validate final configuration against schema if provided
+    # Raise errors if invalid to break flow before templating
+    if schema:
+        validate_config_with_schema(final_conf, schema)
 
+    merged_template = merge_template(template, final_conf) if template else ""
     log.debug(f"# merged_template: {merged_template=}")
 
+    # Validation diff if requested
     diff = None
     if validate:
         validator_text = pathlib.Path(validate).read_text()
         diff = "\n".join(difflib.unified_diff(merged_template.splitlines(), validator_text.splitlines(), lineterm=""))
         log.debug(diff)
 
-    # Special scenarios that emit only the internal configuration and skip the final template.
-    if output == "config-json":
-        print(json.dumps(final_conf, indent=2))
-    elif output in ("config-yaml", "config-yml"):
-        print(yaml.dump(final_conf, indent=2))
-
-    # Apply configuration to the template and write to file or stdout
-    elif output == "stdout":
-        print(merged_template)
-    else:
-        pathlib.Path(output).parent.mkdir(parents=True, exist_ok=True)
-        pathlib.Path(output).write_text(merged_template)
+    # Write output in the requested format
+    _write_output(output, final_conf, merged_template)
 
     return merged_template, diff
 
@@ -485,16 +726,20 @@ def main(_args: list[str] | None = None) -> None:
     parser: argparse.ArgumentParser = __argparse_factory(CLI_CONFIG)
     args: dict[str, Any] = __handle_args(parser, _args)
 
-    merge(
-        env=args["env"],
-        config=args["config"],
-        template=args["template"],
-        output=args["output"],
-        validate=args["validate"],
-        prefix=args["prefix"],
-        functions=args["functions"],
-        stdin_format=args["stdin_format"],
-    )
+    try:
+        merge(
+            env=args["env"],
+            config=args["config"],
+            template=args["template"],
+            output=args["output"],
+            validate=args["validate"],
+            prefix=args["prefix"],
+            functions=args["functions"],
+            stdin_format=args["stdin_format"],
+            schema=args["schema"],
+        )
+    except (ConfigSchemaValidationError, JSONSchemaLoadingError, PydanticConfigSchemaLoadingError) as e:
+        logging.error(e)
 
 
 if __name__ == "__main__":  # pragma: no cover

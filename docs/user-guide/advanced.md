@@ -114,7 +114,7 @@ environments=("development" "staging" "production")
 
 for env in "${environments[@]}"; do
   echo "Testing $env configuration..."
-  
+
   # Generate config
   injinja \
     -e ENVIRONMENT=$env \
@@ -122,7 +122,7 @@ for env in "${environments[@]}"; do
     -c "config/environments/$env.yml" \
     -t app.conf.j2 \
     -o "generated/$env.conf"
-  
+
   # Validate against expected
   if [ -f "expected/$env.conf" ]; then
     injinja \
@@ -153,7 +153,10 @@ environments:
   - name: prod
     region: us-east-1
     replicas: 5
+```
 
+```yaml
+# template.yml
 {% for env in environments %}
 ---
 # {{ env.name }}-{{ env.region }}
@@ -222,6 +225,7 @@ database:
 ```
 
 Usage:
+
 ```bash
 injinja \
   -e FEATURES=auth,metrics,database \
@@ -268,7 +272,7 @@ Generate Terraform configurations:
 # terraform.tf.j2
 terraform {
   required_version = ">= 1.0"
-  
+
   backend "{{ TERRAFORM_BACKEND | default('local') }}" {
 {% if TERRAFORM_BACKEND == 's3' %}
     bucket = "{{ S3_BUCKET }}"
@@ -335,7 +339,7 @@ networks:
 {% endif %}
 ```
 
-### Kubernetes Integration  
+### Kubernetes Integration
 
 ```yaml
 # k8s-deployment.yml.j2
@@ -410,32 +414,12 @@ injinja -c 'config/base/*.yml' -c 'config/env/prod.yml' -c 'config/overrides/loc
 injinja -c 'config/**/*.yml'
 ```
 
-### Template Optimization
-
-1. **Minimize complex logic** in templates
-2. **Use configuration preprocessing** for complex calculations
-3. **Cache intermediate results** in configuration
-
-```yaml
-# Precompute complex values in config
-computed:
-  total_memory: {{ (WORKERS | default(4) | int) * (MEMORY_PER_WORKER | default(512) | int) }}
-  connection_string: "{{ DB_TYPE }}://{{ DB_USER }}:{{ DB_PASS }}@{{ DB_HOST }}/{{ DB_NAME }}"
-
-# Use in template
-database:
-  connection: {{ computed.connection_string }}
-
-workers:
-  count: {{ WORKERS | default(4) }}
-  total_memory: {{ computed.total_memory }}MB
-```
-
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Undefined Variable Errors**: Use defaults or conditional checks
+
 ```yaml
 # Wrong
 database_url: {{ DATABASE_URL }}
@@ -449,13 +433,17 @@ database_url: {{ DATABASE_URL }}
 {% endif %}
 ```
 
-2. **Merge Order Issues**: Explicitly control config file order
+1. **Merge Order Issues**: Explicitly control config file order
+
 ```bash
 # Order matters - later configs override earlier ones
 injinja -c base.yml -c environment.yml -c local-overrides.yml
 ```
 
-3. **Template Syntax Issues**: Use debug mode to see parsed configuration
+> **WARNING**: An empty file will be treated as an empty dictionary `{}` and will authoritatively remove all root keys already merged.
+
+1. **Template Syntax Issues**: Use debug mode to see parsed configuration
+
 ```bash
 injinja --debug -c config.yml -t template.j2
 ```
@@ -469,6 +457,7 @@ injinja --debug -c config.yml -t template.j2
 
 ## Next Steps
 
+- Learn about [Schema Validation](schema-validation.md) for validating configurations
 - Check out the [API Reference](../api/injinja.md) for programmatic usage
 - Explore the [Architecture](../architecture/overview.md) documentation
 - See real-world examples in the project repository
