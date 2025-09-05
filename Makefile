@@ -41,7 +41,7 @@ diag: $(patsubst %.mmd,%.png,$(wildcard diagrams/*.mmd))
 
 docs: diag
 	uvx --from md-toc md_toc --in-place github --header-levels 2 *.md
-	uvx rumdl check . --fix --respect-gitignore -d MD013,MD033
+	uvx rumdl check . --fix --respect-gitignore -d MD013,MD033 --exclude docs/api/*.md
 
 # MkDocs documentation
 docs-install: .venv
