@@ -13,7 +13,7 @@
 
 ## Features
 
-- **Recursive Deep Merge:** Sick of scrolling big fat mega config files? Would you rather have organised folders of smaller configs that act like they are part of the same big config? We recursively deep merge your config.
+- **Recursive Deep Merge:** Sick of scrolling giant mega config files? Would you rather have organised folders of smaller configs that act like they are part of the same big config? We recursively deep merge your config.
 - **Powerful:** Any of your config files are now empowered with the full programming capabilities of [`Jinja`](https://jinja.palletsprojects.com/en/stable/) templating engine for better parametrising the one set of config files.
 - **Flexible:** You design your configuration schema yourself in any of JSON, YAML or TOML.
 - **Enabling:** Separate your project config out to allow _"Drive By Contributors"_. Even non-technical colleagues can edit a text file in a browser to raise a PR.

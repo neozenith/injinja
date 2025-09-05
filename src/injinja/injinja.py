@@ -248,7 +248,26 @@ def __parse_env_line(line: str) -> tuple[str | None, str | None]:
 
 def read_env_file(file_path: str) -> dict[str, str] | None:
     """Reads a .env file and returns a dictionary of key-value pairs.
-    If the file does not exist or is not a regular file, returns None.
+    
+    Parses .env file format with support for:
+    - Comments (lines starting with #)
+    - Quoted values (single or double quotes)
+    - Inline comments after values
+    - Empty lines (ignored)
+    
+    Args:
+        file_path: Path to the .env file to read.
+    
+    Returns:
+        Dictionary of key-value pairs from the .env file, or None if 
+        the file does not exist or is not a regular file.
+        
+    Examples:
+        >>> read_env_file(".env")
+        {'DATABASE_URL': 'postgresql://localhost/mydb', 'DEBUG': 'true'}
+        
+        >>> read_env_file("nonexistent.env")
+        None
     """
     file = pathlib.Path(file_path)
     return (
@@ -282,7 +301,26 @@ def dict_from_prefixes(prefixes: list[str] | None = None) -> dict[str, str] | No
 
 
 def get_environment_variables(env_flags: list[str], prefixes_list: list[str]) -> dict[str, str]:
-    """Get environment variables from all sources and merge them."""
+    """Get environment variables from all sources and merge them.
+    
+    Args:
+        env_flags: List of environment specifications. Can be:
+            - KEY=VALUE pairs (e.g., ["DB_HOST=localhost", "PORT=5432"])
+            - Paths to .env files (e.g., [".env", "config/.env.local"])
+        prefixes_list: List of prefixes to extract from os.environ 
+            (e.g., ["MYAPP_", "DB_"]).
+    
+    Returns:
+        Merged dictionary of environment variables from all sources.
+        Precedence order (highest to lowest):
+        1. CLI KEY=VALUE pairs
+        2. Environment variables from prefixes
+        3. Environment variables from .env files
+        
+    Examples:
+        >>> get_environment_variables(["KEY=value", ".env"], ["APP_"])
+        {'KEY': 'value', 'APP_NAME': 'myapp', ...}
+    """
 
     # Any --env flags that are files are read as .env files
     env_files = [e for e in env_flags if pathlib.Path(e).is_file()]
@@ -309,7 +347,34 @@ def get_environment_variables(env_flags: list[str], prefixes_list: list[str]) ->
 
 
 def get_functions(functions: list[str]) -> dict[str, Any]:
-    """Load custom functions from python files."""
+    """Load custom Jinja2 functions and filters from Python files.
+    
+    Scans Python files for functions following naming conventions and makes
+    them available as Jinja2 filters and tests. Functions are detected by
+    their prefixes:
+    - Functions starting with 'filter_' become Jinja2 filters
+    - Functions starting with 'test_' become Jinja2 tests
+    
+    Args:
+        functions: List of Python file paths or glob patterns pointing to
+            modules containing custom functions. 
+            Examples: ["filters.py", "functions/*.py"]
+    
+    Returns:
+        Dictionary with two keys:
+        - 'filters': Dictionary of filter functions (name -> callable)
+        - 'tests': Dictionary of test functions (name -> callable)
+        
+    Note:
+        - Function names have their prefixes removed (e.g., 'filter_upper' becomes 'upper')
+        - Glob patterns are expanded to find all matching Python files
+        - Functions must be callable (functions, lambdas, or callable classes)
+        
+    Examples:
+        >>> # Given a file with: def filter_reverse(s): return s[::-1]
+        >>> get_functions(["custom.py"])
+        {'filters': {'reverse': <function>}, 'tests': {}}
+    """
     all_functions = __expand_files_or_globs_list(functions)
 
     functions_dict: dict[str, Any] = {"tests": {}, "filters": {}}
@@ -343,9 +408,34 @@ def get_functions(functions: list[str]) -> dict[str, Any]:
 
 
 def load_config(filename: str, environment_variables: dict[str, str] | None = None) -> Any:
-    """Detect if file is JSON, YAML or TOML and return parsed datastructure.
-
-    When environment_variables is provided, then the file is first treated as a Jinja2 template.
+    """Load and parse a configuration file, optionally templating it with environment variables.
+    
+    Automatically detects file format based on extension and parses accordingly.
+    When environment variables are provided, the file is first processed as a 
+    Jinja2 template before parsing.
+    
+    Args:
+        filename: Path to configuration file. Supported formats:
+            - JSON (.json)
+            - YAML (.yml, .yaml) 
+            - TOML (.toml)
+        environment_variables: Optional dictionary of variables to use for
+            Jinja2 templating before parsing the configuration.
+    
+    Returns:
+        Parsed configuration as a Python data structure (dict, list, etc.)
+        appropriate to the file format.
+        
+    Raises:
+        ValueError: If the file extension is not supported.
+        jinja2.exceptions.UndefinedError: If template references undefined variables.
+        
+    Examples:
+        >>> load_config("config.json")
+        {'database': {'host': 'localhost', 'port': 5432}}
+        
+        >>> load_config("config.yaml", {"ENV": "production"})
+        {'environment': 'production', 'debug': False}
     """
     # Step 1 & 2: Get raw template string and merge config (as necessary), returning as string
     content = merge_template(filename, environment_variables)
@@ -374,7 +464,37 @@ def parse_stdin_content(content: str, format_type: str) -> Any:
 
 
 def merge_template(template_filename: str, config: dict[str, Any] | None) -> str:
-    """Load a Jinja2 template from file and merge configuration."""
+    """Render a Jinja2 template file with the provided configuration.
+    
+    Loads a template file and renders it using the configuration dictionary
+    as the template context. If no configuration is provided, returns the
+    raw template content unchanged.
+    
+    Args:
+        template_filename: Path to the Jinja2 template file.
+        config: Optional dictionary of variables to use as the template 
+            context. Keys become available as variables in the template.
+    
+    Returns:
+        Rendered template as a string. If config is None, returns the
+        raw template content.
+        
+    Raises:
+        jinja2.exceptions.UndefinedError: If the template references 
+            variables not present in the config (when using StrictUndefined).
+            
+    Note:
+        - Uses StrictUndefined for Jinja2 v3+ to catch missing variables
+        - Maintains compatibility with Jinja2 v2.x
+        
+    Examples:
+        >>> # Template: "Hello {{ name }}!"
+        >>> merge_template("greeting.j2", {"name": "World"})
+        'Hello World!'
+        
+        >>> merge_template("static.txt", None)
+        'This is static content'
+    """
     # Step 1: get raw content as a string
     raw_content = pathlib.Path(template_filename).read_text()
 
@@ -398,15 +518,31 @@ def merge_template(template_filename: str, config: dict[str, Any] | None) -> str
 
 
 def map_env_to_confs(config_files_or_globs: list[str], env: dict[str, Any]) -> list[dict[str, Any]]:
-    """Load and merge configuration files based on CLI arguments and environment variables.
-
-    The accumulated and merged 'environment variables' is then MAPPED to every config file.
-    Eg every config file is treated as a Jinja2 Template and the 'config' of those template IS the environment variables.
-
-    We wind up with a list of configuration dictionaries, each one maps to a single original config file.
-    So each STATIC config is populated in isolation with the DYNAMIC config (environment variables).
-
-    The final deepmerged config occurs in reduce_confs.
+    """Load configuration files and template them with environment variables.
+    
+    Each configuration file is treated as a Jinja2 template and rendered with
+    the provided environment variables. Files can be specified directly or via
+    glob patterns. The templating happens in isolation for each file before
+    they are later merged.
+    
+    Args:
+        config_files_or_globs: List of configuration file paths or glob patterns.
+            Examples: ["config.json", "settings/*.yaml", "**/*.toml"]
+        env: Dictionary of environment variables to use for templating each
+            configuration file.
+    
+    Returns:
+        List of parsed configuration dictionaries, one for each resolved 
+        configuration file. These are ready to be merged by reduce_confs().
+        
+    Note:
+        - Glob patterns are expanded to find all matching files
+        - Each file is templated independently with the environment variables
+        - The final merging of configurations happens in reduce_confs()
+        
+    Examples:
+        >>> map_env_to_confs(["config/*.yaml"], {"ENV": "prod"})
+        [{'database': 'prod_db'}, {'cache': 'redis_prod'}]
     """
     log.debug(f"# config sources: {config_files_or_globs=}")
     all_conf_files = __expand_files_or_globs_list(config_files_or_globs)
@@ -416,11 +552,30 @@ def map_env_to_confs(config_files_or_globs: list[str], env: dict[str, Any]) -> l
 
 
 def reduce_confs(confs: list[dict[str, Any]]) -> dict[str, Any]:
-    """Reduce a list of configuration dictionaries into a single dictionary.
-
-    This is the magic!
-
-    The order of your config files is important in how they layer over the top of each other for merging and overrides.
+    """Merge multiple configuration dictionaries into a single dictionary.
+    
+    Uses deep merging to combine configurations, where later configurations
+    in the list override earlier ones. This allows for layered configuration
+    with base settings and environment-specific overrides.
+    
+    Args:
+        confs: List of configuration dictionaries to merge. Order matters -
+            later dictionaries override values in earlier ones.
+    
+    Returns:
+        Single merged configuration dictionary containing all settings.
+        
+    Note:
+        - Uses deepmerge.always_merger for recursive merging
+        - Lists are concatenated, not replaced
+        - Dictionaries are merged recursively
+        - Scalar values from later configs override earlier ones
+        
+    Examples:
+        >>> base = {"db": {"host": "localhost", "port": 5432}}
+        >>> override = {"db": {"host": "prod.example.com"}}
+        >>> reduce_confs([base, override])
+        {'db': {'host': 'prod.example.com', 'port': 5432}}
     """
     return functools.reduce(always_merger.merge, confs, {})
 
@@ -588,16 +743,31 @@ def validate_config_with_jsonschema(config: dict[str, Any], schema_file: str) ->
 
 
 def validate_config_with_schema(config: dict[str, Any], schema: str) -> None:
-    """Validate the final merged configuration against a schema.
-
-    Determines whether to use JSON Schema or Pydantic validation based on the schema format.
-
+    """Validate configuration against a JSON Schema or Pydantic model.
+    
+    Automatically determines the validation method based on the schema format.
+    Supports both JSON Schema files and Pydantic model specifications.
+    
     Args:
-        config: The final merged configuration dictionary
-        schema: Either a path to a JSON Schema file or a Pydantic model spec (module.py::Model)
-
+        config: The configuration dictionary to validate.
+        schema: Schema specification. Can be:
+            - Path to a JSON Schema file (.json)
+            - Pydantic model specification in format "module.py::ModelClass"
+              where module.py is the Python file and ModelClass is the
+              Pydantic BaseModel subclass.
+    
     Raises:
-        ConfigSchemaValidationError: If validation fails with detailed error message
+        ConfigSchemaValidationError: If validation fails, with detailed 
+            error messages showing what failed and where.
+        JSONSchemaLoadingError: If JSON Schema file cannot be loaded or parsed.
+        PydanticConfigSchemaLoadingError: If Pydantic model cannot be loaded.
+        
+    Examples:
+        >>> # Validate with JSON Schema
+        >>> validate_config_with_schema(config, "schemas/config.json")
+        
+        >>> # Validate with Pydantic model
+        >>> validate_config_with_schema(config, "models.py::ConfigModel")
     """
     # Check if this is a Pydantic model specification (contains "::")
     if ".py" in schema:
@@ -671,8 +841,45 @@ def merge(
     - This final configuration is then applied to your target Jinja2 template file.
 
     OPTIONALLY:
+    
     - Can take custom functions for use within the Jinja2 template engine.
     - Can take a validation file to assist with checking expected templated output against a known file.
+    
+    Args:
+        env: List of environment variable sources. Can include:
+            - KEY=VALUE pairs (e.g., ["DB_HOST=localhost"])
+            - Paths to .env files (e.g., [".env", ".env.local"])
+        config: List of configuration file paths or glob patterns.
+            Supports JSON, YAML, and TOML formats.
+        template: Path to the main Jinja2 template file to render.
+        output: Where to write the output. Options:
+            - "stdout" (default): Print to standard output
+            - "config-json": Print final config as JSON
+            - "config-yaml"/"config-yml": Print final config as YAML
+            - Any file path: Write to that file
+        validate: Optional path to a file for diff comparison with output.
+        prefix: List of environment variable prefixes to import from os.environ.
+        functions: List of Python files containing custom Jinja2 functions.
+        stdin_format: Format of configuration data from stdin ("json", "yaml", "toml").
+        schema: Schema for validation. Either JSON Schema file or Pydantic model spec.
+    
+    Returns:
+        Tuple of (rendered_template, diff):
+        - rendered_template: The final rendered template as a string
+        - diff: Unified diff if validate was provided, None otherwise
+        
+    Raises:
+        ConfigSchemaValidationError: If schema validation fails.
+        jinja2.exceptions.UndefinedError: If template has undefined variables.
+        
+    Examples:
+        >>> merge(
+        ...     env=["API_KEY=secret", ".env"],
+        ...     config=["base.yaml", "prod/*.yaml"],
+        ...     template="app.conf.j2",
+        ...     output="/etc/app.conf"
+        ... )
+        ('# Generated config...', None)
     """
     # Defaults to empty lists (setting mutables as defaults is not recommended)
     _env: list[str] = env or []
