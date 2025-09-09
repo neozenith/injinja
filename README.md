@@ -1,12 +1,25 @@
 # injinja 🥷
 
+<!-- TODO: Catchy Logo, 450px wide -->
 <p align="center">
-    <!-- TODO: Catchy Logo, 450px wide -->
-    <a href="https://github.com/neozenith/injinja/releases"><img src="https://img.shields.io/github/release/neozenith/injinja" alt="Latest Release"></a>
+    <!-- CICD / Publishing Health -->
+    <a href="https://github.com/neozenith/injinja/actions/workflows/cicd.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/cicd.yml/badge.svg" alt="CICD Checks"></a>
     <a href="https://github.com/neozenith/injinja/actions/workflows/publish.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/publish.yml/badge.svg" alt="Build Status"></a>
     <!-- coverage-badge -->
     <img src="https://img.shields.io/badge/coverage-89%25-yellow.svg" alt="Coverage">
     <!-- coverage-badge -->
+</p>
+<p align="center">
+    <!-- project development health -->
+    <a href="https://github.com/neozenith/injinja/graphs/commit-activity"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/neozenith/injinja"/></a>
+    <a href="https://github.com/neozenith/injinja/issues"><img alt="GitHub open issues" src="https://img.shields.io/github/issues/neozenith/injinja"/></a>
+    <a href="https://github.com/neozenith/injinja/pulls"><img alt="GitHub open pull requests" src="https://img.shields.io/github/issues-pr/neozenith/injinja"/></a>
+</p>
+<p align="center">
+    <!-- License and latest info -->
+    <a href="https://neozenith.github.io/injinja"><img src="https://github.com/neozenith/injinja/actions/workflows/docs.yml/badge.svg" alt="Deploy GitHub Pages"></a>
+    <a href="https://github.com/neozenith/injinja/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/neozenith/injinja"/></a>
+    <a href="https://github.com/neozenith/injinja/releases"><img src="https://img.shields.io/github/release/neozenith/injinja" alt="Latest Release"></a>
 </p>
 
 <p align="center">Injinja: <b>Inj</b>ectable <b>Jinja</b> Configuration tool.</p>
