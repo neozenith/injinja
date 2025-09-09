@@ -44,9 +44,7 @@ class TestMainFunction:
                     "-p",
                     "PREFIX_",
                     "-o",
-                    "output.txt",
-                    "--stdin-format",
-                    "json",
+                    "output.txt"
                 ]
             )
 
@@ -57,4 +55,4 @@ class TestMainFunction:
             assert "KEY=VALUE" in call_args["env"]
             assert "PREFIX_" in call_args["prefix"]
             assert call_args["output"] == "output.txt"
-            assert call_args["stdin_format"] == "json"
+
