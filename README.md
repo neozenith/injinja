@@ -16,7 +16,8 @@
     <a href="https://github.com/neozenith/injinja/pulls"><img alt="GitHub open pull requests" src="https://img.shields.io/github/issues-pr/neozenith/injinja"/></a>
 </p>
 <p align="center">
-    <!-- License and latest version -->
+    <!-- License and latest info -->
+    <a href="https://neozenith.github.io/injinja"><img src="https://github.com/neozenith/injinja/actions/workflows/docs.yml/badge.svg" alt="Deploy GitHub Pages"></a>
     <a href="https://github.com/neozenith/injinja/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/neozenith/injinja"/></a>
     <a href="https://github.com/neozenith/injinja/releases"><img src="https://img.shields.io/github/release/neozenith/injinja" alt="Latest Release"></a>
 </p>
