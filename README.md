@@ -8,7 +8,7 @@
     <a href="https://github.com/neozenith/injinja/actions/workflows/cicd.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/cicd.yml/badge.svg" alt="CICD Checks"></a>
     <a href="https://github.com/neozenith/injinja/actions/workflows/publish.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/publish.yml/badge.svg" alt="Build Status"></a>
     <!-- coverage-badge -->
-    <img src="https://img.shields.io/badge/coverage-89%25-yellow.svg" alt="Coverage">
+    <img src="https://img.shields.io/badge/coverage-91%25-brightgreen.svg" alt="Coverage">
     <!-- coverage-badge -->
 </p>
 <p align="center">

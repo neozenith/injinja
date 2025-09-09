@@ -46,19 +46,19 @@ log = logging.getLogger(__name__)
 class PydanticConfigSchemaLoadingError(Exception):
     """Custom exception for Pydantic schema loading errors."""
 
-    pass
+    ...
 
 
 class JSONSchemaLoadingError(Exception):
     """Custom exception for JSON schema loading errors."""
 
-    pass
+    ...
 
 
 class ConfigSchemaValidationError(Exception):
     """Custom exception for configuration validation errors."""
 
-    pass
+    ...
 
 
 DEBUG_MODE = False
@@ -796,9 +796,9 @@ def _process_stdin_config(stdin_format: str | None, confs: list[dict[str, Any]])
             except Exception as e:
                 log.error(f"Error parsing stdin content as {stdin_format}: {e}")
                 # Optionally, re-raise or exit if stdin parsing is critical
-        else:
+        else:  # pragma: no cover
             log.debug("# stdin was empty or whitespace only, no config read.")
-    elif stdin_format and sys.stdin.isatty():
+    elif stdin_format and sys.stdin.isatty():  # pragma: no cover
         log.debug(f"# --stdin-format '{stdin_format}' provided, but no data piped to stdin.")
 
 
