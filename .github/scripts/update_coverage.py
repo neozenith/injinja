@@ -21,8 +21,9 @@ PROJECT_ROOT = SCRIPT_DIR.parent.parent  # Two levels up from .github/scripts/
 # Input/Output files
 COVERAGE_FILE = PROJECT_ROOT / "coverage.json"
 README_FILE = PROJECT_ROOT / "README.md"
+DOCS_INDEX_FILE = PROJECT_ROOT / "docs/index.md"
 ALL_INPUTS = [COVERAGE_FILE]
-ALL_OUTPUTS = [README_FILE]
+ALL_OUTPUTS = [README_FILE, DOCS_INDEX_FILE]
 
 # Constants
 BADGE_MARKER = "<!-- coverage-badge -->"
@@ -60,37 +61,56 @@ def update_readme_badge(coverage_pct: int, dry_run: bool = False) -> None:
     
     log.info(f"Coverage: {coverage_pct}% (color: {coverage_colour})")
     
-    # Read README content
-    readme_text = README_FILE.read_text()
+    for output_file in ALL_OUTPUTS:
+        update_markdown_file(output_file, badge_md, dry_run)
+
+
+def update_markdown_file(output_file: Path, badge_md: str, dry_run: bool) -> None:
+    markdown_content = output_file.read_text()
     
-    # Find the positions of the two markers
-    first_marker_pos = readme_text.find(BADGE_MARKER)
-    if first_marker_pos == -1:
-        raise ValueError(f"First marker '{BADGE_MARKER}' not found in README")
-    
-    # Find the end of the first marker line
-    first_marker_end = readme_text.find('\n', first_marker_pos) + 1
-    
-    # Find the second marker starting after the first one
-    second_marker_pos = readme_text.find(BADGE_MARKER, first_marker_end)
-    if second_marker_pos == -1:
-        raise ValueError(f"Second marker '{BADGE_MARKER}' not found in README")
-    
-    # Find the start of the second marker line (go back to beginning of line)
-    second_marker_start = readme_text.rfind('\n', 0, second_marker_pos) + 1
+    first_marker_end, second_marker_start = get_badge_marker_positions(markdown_content, BADGE_MARKER)
     
     # Replace content between markers
     new_readme = (
-        readme_text[:first_marker_end] +
+        markdown_content[:first_marker_end] +
         f"    {badge_md}\n" +
-        readme_text[second_marker_start:]
+        markdown_content[second_marker_start:]
     )
     
     if dry_run:
-        log.info(f"DRY RUN: Would update README with badge: {badge_md}")
+        log.info(f"DRY RUN: Would update {output_file.relative_to(PROJECT_ROOT)} with badge: {badge_md}")
     else:
-        README_FILE.write_text(new_readme)
-        log.info(f"Updated {README_FILE.relative_to(PROJECT_ROOT)} with coverage badge")
+        output_file.write_text(new_readme)
+        log.info(f"Updated {output_file.relative_to(PROJECT_ROOT)} with coverage badge")
+
+def get_badge_marker_positions(content: str, badge_marker: str) -> tuple[int, int]:
+    """Get positions of badge markers in the content.
+    
+    Args:
+        content: The markdown content as a string.
+        
+    Returns:
+        A tuple with the end position of the first marker and the start position of the second marker.
+        
+    Raises:
+        ValueError: If markers are not found or are in the wrong order.
+    """
+    first_marker = content.find(badge_marker)
+    if first_marker == -1:
+        raise ValueError(f"First badge marker '{badge_marker}' not found.")
+    
+    # Find the end of the first marker line
+    first_marker_end = content.find('\n', first_marker) + 1
+    
+    # Find the second marker starting after the first one
+    second_marker_pos = content.find(badge_marker, first_marker_end)
+    if second_marker_pos == -1:
+        raise ValueError(f"Second marker '{badge_marker}' not found")
+    
+    # Find the start of the second marker line (go back to beginning of line)
+    second_marker_start = content.rfind('\n', 0, second_marker_pos) + 1
+
+    return first_marker_end, second_marker_start
 
 
 def main(dry_run: bool = False) -> None:
