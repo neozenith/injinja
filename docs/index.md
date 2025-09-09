@@ -1,6 +1,7 @@
 # injinja 🥷
-
-<!-- TODO: Catchy Logo, 450px wide -->
+<p align="center">
+    <img src="injinja-logo.svg" width="350px" />
+</p>
 <p align="center">
     <!-- CICD / Publishing Health -->
     <a href="https://github.com/neozenith/injinja/actions/workflows/cicd.yml"><img src="https://github.com/neozenith/injinja/actions/workflows/cicd.yml/badge.svg" alt="CICD Checks"></a>
