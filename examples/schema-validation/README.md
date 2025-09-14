@@ -60,6 +60,7 @@ This ensures that your configuration is valid before any templating begins, catc
 ## Choosing an Approach
 
 ### Use JSON Schema When
+
 - You want language-agnostic validation
 - Working with external teams/tools that need schema docs
 - Need complex pattern matching or conditional validation
@@ -67,6 +68,7 @@ This ensures that your configuration is valid before any templating begins, catc
 - Want maximum portability
 
 ### Use Pydantic When
+
 - Working in a Python-centric environment
 - Want type safety and IDE support
 - Need custom validation logic
@@ -109,6 +111,7 @@ injinja \
 ### Schema File Formats
 
 JSON Schema files support multiple formats:
+
 - `.json` - JSON format
 - `.yaml`, `.yml` - YAML format
 - `.toml` - TOML format

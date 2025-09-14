@@ -25,6 +25,12 @@ test: check .venv/deps
 	uv run pytest
 	uv run .github/scripts/update_coverage.py
 
+test-matrix: .venv/deps
+	uv run scripts/test_matrix.py
+
+test-matrix-clean: .venv/deps
+	uv run scripts/test_matrix.py --clean
+
 show_coverage: test
 	uv run -m http.server --directory htmlcov/
 
@@ -89,4 +95,4 @@ clean:
 	rm -rf .coverage
 	rm -rf site/
 
-.PHONY: format check test docs build diag clean publish publish-test docs-install docs-serve docs-build docs-deploy docs-clean
+.PHONY: format check test test-matrix test-matrix-clean docs build diag clean publish publish-test docs-install docs-serve docs-build docs-deploy docs-clean
