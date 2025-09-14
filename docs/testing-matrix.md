@@ -42,12 +42,52 @@ uv run scripts/test_matrix.py --dry-run
 
 ## GitHub Actions
 
-The CI/CD workflows automatically test the full matrix on every push and pull request:
+The project includes local testing scripts that can be integrated into CI/CD workflows. The current `cicd.yml` workflow provides basic checks with the default Python/Jinja2 versions.
 
-1. **Basic Checks** (`cicd.yml`) - Fast feedback with linting, type checking, and tests on the default Python/Jinja2 versions
-2. **Matrix Tests** (`matrix-tests.yml`) - Comprehensive testing across all supported Python/Jinja2 combinations
+For comprehensive matrix testing in GitHub Actions, you can add a workflow like this:
 
-The matrix tests run in parallel and are configured to not fail fast, so you can see results for all combinations even if some fail.
+```yaml
+name: Matrix Tests
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  matrix-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+        jinja2-version: ["3.0.0", "3.1.0", "3.1.6"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Init submodules
+        run: git submodule update --init --recursive --remote
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create test environment
+        run: uv venv test-env --python ${{ matrix.python-version }}
+          
+      - name: Install specific Jinja2 version and dependencies
+        run: uv pip install --venv test-env jinja2==${{ matrix.jinja2-version }} PyYAML deepmerge jsonschema pydantic
+          
+      - name: Install project and test dependencies
+        run: |
+          uv pip install --venv test-env -e .
+          uv pip install --venv test-env pytest pytest-cov
+
+      - name: Run tests
+        run: |
+          source test-env/bin/activate
+          python -m pytest tests/ -v --tb=short
+```
 
 ## How It Works
 
@@ -61,28 +101,28 @@ The `scripts/test_matrix.py` script:
 4. Runs the full test suite
 5. Reports results for each combination
 
-### GitHub Actions Workflows
+### GitHub Actions Integration
 
-The `.github/workflows/matrix-tests.yml` workflow:
+To add matrix testing to GitHub Actions:
 
-1. Uses GitHub's matrix strategy to run jobs in parallel
-2. Each job tests one Python/Jinja2 combination
-3. Uses `uv` for fast dependency resolution and environment management
-4. Provides detailed test output for debugging
+1. Create a new workflow file (e.g., `.github/workflows/matrix-tests.yml`)
+2. Use the example workflow above as a starting point
+3. Customize the matrix versions as needed
+4. The workflow uses `uv` for fast dependency resolution and environment management
 
 ## Adding New Versions
 
 ### Python Versions
 
 1. Update `PYTHON_VERSIONS` in `scripts/test_matrix.py`
-2. Update the matrix in `.github/workflows/matrix-tests.yml`
+2. Update the matrix in any GitHub Actions matrix workflow files
 3. Add the Python version classifier to `pyproject.toml`
 4. Run `uv run scripts/update_python_versions.py` (if using the helper script)
 
 ### Jinja2 Versions
 
 1. Update `JINJA2_VERSIONS` in `scripts/test_matrix.py`
-2. Update the matrix in `.github/workflows/matrix-tests.yml`
+2. Update the matrix in any GitHub Actions matrix workflow files
 3. Test the new version locally before committing
 
 ## Troubleshooting
