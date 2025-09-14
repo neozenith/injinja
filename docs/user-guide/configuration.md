@@ -161,6 +161,7 @@ injinja --prefix MYAPP_ -c config.yml -t template.j2
 ```
 
 The prefix is removed and variables are lowercased:
+
 - `MYAPP_DATABASE_URL` → `myapp_database_url`
 - `MYAPP_LOG_LEVEL` → `myapp_log_level`
 
@@ -291,6 +292,7 @@ injinja --debug -c config.yml -t template.j2
 ```
 
 Debug mode shows:
+
 - Environment variable collection
 - Configuration file discovery and parsing  
 - Template rendering steps

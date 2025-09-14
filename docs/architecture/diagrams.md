@@ -9,6 +9,7 @@ The high-level flow showing the two-step templating process:
 ![Overview Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/overview.png?raw=true)
 
 This diagram shows:
+
 1. **Environment Variables** (DYNAMIC) provide runtime configuration
 2. **Configuration Files** (STATIC) are templated with environment variables
 3. **Final Template** is rendered with the merged configuration
@@ -21,6 +22,7 @@ The complete system architecture showing all components and their interactions:
 ![Architecture Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/architecture.png?raw=true)
 
 Key components illustrated:
+
 - Environment variable collection from multiple sources
 - Configuration file discovery and templating
 - Deep merge process
@@ -34,6 +36,7 @@ The hierarchical configuration management pattern:
 ![Collections of Configs](https://github.com/neozenith/injinja/blob/main/diagrams/collections_of_configs.png?raw=true)
 
 This shows:
+
 - How multiple configuration files are collected via `-c` flags
 - File vs. glob pattern resolution
 - Independent templating of each config with environment variables
@@ -46,6 +49,7 @@ The validation and testing workflow:
 ![Testing Diagram](https://github.com/neozenith/injinja/blob/main/diagrams/testing.png?raw=true)
 
 Illustrates:
+
 - Configuration validation against expected outputs
 - Debug output for troubleshooting
 - Integration with external tools like `jq` and `yq`

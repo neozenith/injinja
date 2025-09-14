@@ -187,6 +187,7 @@ ERROR:root:Pydantic validation failed:
 ```
 
 **Expected**: ❌ Multiple validation errors:
+
 - Production versions cannot contain pre-release metadata (1.2.3-beta)
 - Production database cannot use localhost
 - Feature flag must be boolean, not string
